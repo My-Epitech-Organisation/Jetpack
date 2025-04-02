@@ -14,6 +14,10 @@ void display_help(void)
 
 int main(int argc, char **argv)
 {
+    if (argc == 1) {
+        display_help();
+        return 84;
+    }
     if (strcmp(argv[1], "-help") == 0) {
         display_help();
         return 0;
