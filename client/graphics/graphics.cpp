@@ -15,7 +15,7 @@ namespace jetpack {
 namespace graphics {
 
 Graphics::Graphics(GameState* gameState, bool debugMode)
-    : window_(nullptr), gameState_(gameState), debugMode_(debugMode), 
+    : window_(nullptr), gameState_(gameState), debugMode_(debugMode),
       running_(false), graphicsInitialized_(false) {
   // Defer window creation to the run() method
 }
@@ -71,11 +71,11 @@ void Graphics::run() {
   graphicsThread_ = std::thread([this]() {
     // Try to initialize graphics in the thread
     graphicsInitialized_ = initializeWindow();
-    
+   
     if (graphicsInitialized_) {
       // Only initialize resources if window was created successfully
       initializeResources();
-      
+     
       // Main render loop
       while (running_ && window_ && window_->isOpen()) {
         processEvents();
@@ -109,7 +109,7 @@ bool Graphics::isRunning() const {
 
 void Graphics::processEvents() {
   if (!window_) return;
-  
+ 
   sf::Event event;
   while (window_->pollEvent(event)) {
     if (event.type == sf::Event::Closed) {
@@ -128,7 +128,7 @@ void Graphics::update() {
 
 void Graphics::render() {
   if (!window_ || !window_->isOpen()) return;
-  
+ 
   window_->clear(sf::Color(50, 50, 50));  // Dark gray background
 
   if (gameState_->isConnected()) {
@@ -157,7 +157,7 @@ void Graphics::render() {
 
 void Graphics::renderMap() {
   if (!window_) return;
-  
+ 
   auto mapData = gameState_->getMapData();
   auto [width, height] = gameState_->getMapDimensions();
 
@@ -211,7 +211,7 @@ void Graphics::renderMap() {
 
 void Graphics::renderPlayers() {
   if (!window_) return;
-  
+ 
   auto players = gameState_->getPlayerStates();
   auto [width, height] = gameState_->getMapDimensions();
 
@@ -268,7 +268,7 @@ void Graphics::renderPlayers() {
 
 void Graphics::renderUI() {
   if (!window_) return;
-  
+ 
   // Render game status at the top of the screen
   sf::Text statusText;
   statusText.setFont(font_);
@@ -309,7 +309,7 @@ void Graphics::renderUI() {
 
 void Graphics::renderDebugInfo() {
   if (!window_) return;
-  
+ 
   sf::Text debugText;
   debugText.setFont(font_);
   std::stringstream ss;
