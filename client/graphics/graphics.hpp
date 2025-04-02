@@ -30,10 +30,11 @@ class Graphics {
 
  private:
   // Window and game state
-  sf::RenderWindow window_;
+  std::unique_ptr<sf::RenderWindow> window_;
   GameState* gameState_;
   bool debugMode_;
   std::atomic<bool> running_;
+  std::atomic<bool> graphicsInitialized_;
   std::thread graphicsThread_;
 
   // SFML objects
@@ -49,7 +50,8 @@ class Graphics {
   const float COIN_RADIUS = 5.0f;
 
   // Graphics methods
-  void initialize();
+  bool initializeWindow();
+  bool initializeResources();
   void processEvents();
   void update();
   void render();
