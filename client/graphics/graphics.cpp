@@ -29,7 +29,7 @@ void Graphics::initialize() {
   window_.setFramerateLimit(60);
 
   // Load font
-  if (!font_.loadFromFile("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf")) {
+  if (!font_.loadFromFile("assets/jetpack_font.ttf")) {
     std::cerr << "Failed to load font" << std::endl;
     // Proceed without font
   }
