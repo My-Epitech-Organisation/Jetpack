@@ -30,6 +30,7 @@ void server(int argc, char **argv)
     server->client_count = 0;
     set_bind(server);
     set_listen(server->fd);
+    load_map(server);
     handle_clients(server);
     close_everything(server);
 }
