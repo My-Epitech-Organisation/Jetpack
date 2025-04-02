@@ -1,10 +1,10 @@
 =============================================================================
-Merged Jetpack Protocol (MJP)
+Jetpack Protocol (MJP)
 =============================================================================
 Status of This Memo
 
    This memo présente une spécification expérimentale pour un protocole
-   binaire appelé "Merged Jetpack Protocol" (MJP). Il fusionne des éléments
+   binaire appelé "Jetpack Protocol" (MJP). Il fusionne des éléments
    de deux RFC précédentes, dans le but de fournir un système de communication
    robuste, modulaire et facile à implémenter pour un jeu Jetpack multijoueur.
 
@@ -336,7 +336,7 @@ Status of This Memo
 8. Conclusion
 =============================================================================
 
-   Ce "Merged Jetpack Protocol" (MJP) reprend la robustesse de la
+   Ce "Jetpack Protocol" (MJP) reprend la robustesse de la
    structure (Magic Byte, chunking pour la map, etc.) tout en gardant la
    clarté et la simplicité d’un schéma de messages (CLIENT_CONNECT,
    GAME_STATE avec TICK, etc.). Il offre :
@@ -351,5 +351,5 @@ Status of This Memo
    gestion aisée des évolutions futures.
 
 =============================================================================
-End of Merged Jetpack Protocol RFC
+End of Jetpack Protocol RFC
 =============================================================================
