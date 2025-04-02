@@ -15,25 +15,27 @@ namespace jetpack {
 namespace graphics {
 
 Graphics::Graphics(GameState* gameState, bool debugMode)
-    : window_(sf::VideoMode(800, 600), "Jetpack Client"),
-      gameState_(gameState), debugMode_(debugMode), running_(false) {
-  initialize();
+    : window_(nullptr), gameState_(gameState), debugMode_(debugMode),
+      running_(false), graphicsInitialized_(false) {
+  // Defer window creation to the run() method
 }
 
 Graphics::~Graphics() {
   stop();
 }
 
-void Graphics::initialize() {
-  // Set framerate limit
-  window_.setFramerateLimit(60);
-
-  // Load font
-  if (!font_.loadFromFile("assets/jetpack_font.ttf")) {
-    std::cerr << "Failed to load font" << std::endl;
-    // Proceed without font
+bool Graphics::initializeWindow() {
+  try {
+    window_ = std::make_unique<sf::RenderWindow>(sf::VideoMode(800, 600), "Jetpack Client");
+    window_->setFramerateLimit(60);
+    return true;
+  } catch (const std::exception& e) {
+    std::cerr << "Failed to create SFML window: " << e.what() << std::endl;
+    return false;
   }
+}
 
+bool Graphics::initializeResources() {
   // Initialize player shape (green circle)
   playerShape_.setRadius(PLAYER_RADIUS);
   playerShape_.setFillColor(sf::Color::Green);
@@ -51,15 +53,41 @@ void Graphics::initialize() {
   // Initialize electric shape (blue rectangle)
   electricShape_.setSize(sf::Vector2f(TILE_SIZE, TILE_SIZE));
   electricShape_.setFillColor(sf::Color::Blue);
+
+  // Load font - don't fail if this doesn't work
+  try {
+    if (!font_.loadFromFile("assets/jetpack_font.ttf")) {
+      std::cerr << "Failed to load font, using system default" << std::endl;
+    }
+  } catch (const std::exception& e) {
+    std::cerr << "Font loading error: " << e.what() << std::endl;
+  }
+
+  return true;
 }
 
 void Graphics::run() {
   running_ = true;
   graphicsThread_ = std::thread([this]() {
-    while (running_ && window_.isOpen()) {
-      processEvents();
-      update();
-      render();
+    // Try to initialize graphics in the thread
+    graphicsInitialized_ = initializeWindow();
+   
+    if (graphicsInitialized_) {
+      // Only initialize resources if window was created successfully
+      initializeResources();
+     
+      // Main render loop
+      while (running_ && window_ && window_->isOpen()) {
+        processEvents();
+        update();
+        render();
+      }
+    } else {
+      std::cerr << "Graphics initialization failed - running in headless mode" << std::endl;
+      // Keep the thread alive but do nothing
+      while (running_) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+      }
     }
   });
 }
@@ -69,20 +97,23 @@ void Graphics::stop() {
   if (graphicsThread_.joinable()) {
     graphicsThread_.join();
   }
-  if (window_.isOpen()) {
-    window_.close();
+  if (window_) {
+    window_->close();
+    window_.reset();
   }
 }
 
 bool Graphics::isRunning() const {
-  return running_ && window_.isOpen();
+  return running_;
 }
 
 void Graphics::processEvents() {
+  if (!window_) return;
+ 
   sf::Event event;
-  while (window_.pollEvent(event)) {
+  while (window_->pollEvent(event)) {
     if (event.type == sf::Event::Closed) {
-      window_.close();
+      window_->close();
     } else if (event.type == sf::Event::KeyPressed) {
       handleKeyPress(event.key.code, true);
     } else if (event.type == sf::Event::KeyReleased) {
@@ -96,7 +127,9 @@ void Graphics::update() {
 }
 
 void Graphics::render() {
-  window_.clear(sf::Color(50, 50, 50));  // Dark gray background
+  if (!window_ || !window_->isOpen()) return;
+ 
+  window_->clear(sf::Color(50, 50, 50));  // Dark gray background
 
   if (gameState_->isConnected()) {
     renderMap();
@@ -110,19 +143,21 @@ void Graphics::render() {
     text.setCharacterSize(24);
     text.setFillColor(sf::Color::White);
     text.setPosition(
-        window_.getSize().x / 2 - text.getLocalBounds().width / 2,
-        window_.getSize().y / 2 - text.getLocalBounds().height / 2);
-    window_.draw(text);
+        window_->getSize().x / 2 - text.getLocalBounds().width / 2,
+        window_->getSize().y / 2 - text.getLocalBounds().height / 2);
+    window_->draw(text);
   }
 
   if (debugMode_) {
     renderDebugInfo();
   }
 
-  window_.display();
+  window_->display();
 }
 
 void Graphics::renderMap() {
+  if (!window_) return;
+ 
   auto mapData = gameState_->getMapData();
   auto [width, height] = gameState_->getMapDimensions();
 
@@ -132,8 +167,8 @@ void Graphics::renderMap() {
   }
 
   // Calculate view scaling to fit the map
-  float viewWidth = window_.getSize().x;
-  float viewHeight = window_.getSize().y;
+  float viewWidth = window_->getSize().x;
+  float viewHeight = window_->getSize().y;
   float mapWidth = width * TILE_SIZE;
   float mapHeight = height * TILE_SIZE;
 
@@ -154,17 +189,17 @@ void Graphics::renderMap() {
       switch (tileType) {
         case protocol::WALL:
           wallShape_.setPosition(posX, posY);
-          window_.draw(wallShape_);
+          window_->draw(wallShape_);
           break;
 
         case protocol::COIN:
           coinShape_.setPosition(posX + TILE_SIZE / 2, posY + TILE_SIZE / 2);
-          window_.draw(coinShape_);
+          window_->draw(coinShape_);
           break;
 
         case protocol::ELECTRIC:
           electricShape_.setPosition(posX, posY);
-          window_.draw(electricShape_);
+          window_->draw(electricShape_);
           break;
 
         default:  // EMPTY or unknown
@@ -175,6 +210,8 @@ void Graphics::renderMap() {
 }
 
 void Graphics::renderPlayers() {
+  if (!window_) return;
+ 
   auto players = gameState_->getPlayerStates();
   auto [width, height] = gameState_->getMapDimensions();
 
@@ -183,8 +220,8 @@ void Graphics::renderPlayers() {
   }
 
   // Calculate view scaling
-  float viewWidth = window_.getSize().x;
-  float viewHeight = window_.getSize().y;
+  float viewWidth = window_->getSize().x;
+  float viewHeight = window_->getSize().y;
   float mapWidth = width * TILE_SIZE;
   float mapHeight = height * TILE_SIZE;
 
@@ -208,7 +245,7 @@ void Graphics::renderPlayers() {
     }
 
     playerShape_.setPosition(screenX, screenY);
-    window_.draw(playerShape_);
+    window_->draw(playerShape_);
 
     // Draw player ID and score
     sf::Text idText;
@@ -217,7 +254,7 @@ void Graphics::renderPlayers() {
     idText.setCharacterSize(12);
     idText.setFillColor(sf::Color::White);
     idText.setPosition(screenX - 5, screenY - 25);
-    window_.draw(idText);
+    window_->draw(idText);
 
     sf::Text scoreText;
     scoreText.setFont(font_);
@@ -225,11 +262,13 @@ void Graphics::renderPlayers() {
     scoreText.setCharacterSize(12);
     scoreText.setFillColor(sf::Color::White);
     scoreText.setPosition(screenX - 30, screenY + 15);
-    window_.draw(scoreText);
+    window_->draw(scoreText);
   }
 }
 
 void Graphics::renderUI() {
+  if (!window_) return;
+ 
   // Render game status at the top of the screen
   sf::Text statusText;
   statusText.setFont(font_);
@@ -256,7 +295,7 @@ void Graphics::renderUI() {
 
   statusText.setCharacterSize(16);
   statusText.setPosition(10, 10);
-  window_.draw(statusText);
+  window_->draw(statusText);
 
   // Show control info at the bottom
   sf::Text controlsText;
@@ -264,11 +303,13 @@ void Graphics::renderUI() {
   controlsText.setString("Controls: Left/Right Arrows, Space = Jetpack");
   controlsText.setCharacterSize(14);
   controlsText.setFillColor(sf::Color(200, 200, 200));
-  controlsText.setPosition(10, window_.getSize().y - 25);
-  window_.draw(controlsText);
+  controlsText.setPosition(10, window_->getSize().y - 25);
+  window_->draw(controlsText);
 }
 
 void Graphics::renderDebugInfo() {
+  if (!window_) return;
+ 
   sf::Text debugText;
   debugText.setFont(font_);
   std::stringstream ss;
@@ -284,8 +325,8 @@ void Graphics::renderDebugInfo() {
   debugText.setString(ss.str());
   debugText.setCharacterSize(12);
   debugText.setFillColor(sf::Color::Green);
-  debugText.setPosition(window_.getSize().x - 200, 10);
-  window_.draw(debugText);
+  debugText.setPosition(window_->getSize().x - 200, 10);
+  window_->draw(debugText);
 }
 
 void Graphics::handleKeyPress(sf::Keyboard::Key key, bool isPressed) {
@@ -318,7 +359,9 @@ void Graphics::handleKeyPress(sf::Keyboard::Key key, bool isPressed) {
       break;
 
     case sf::Keyboard::Escape:
-      window_.close();
+      if (window_) {
+        window_->close();
+      }
       break;
 
     default:
