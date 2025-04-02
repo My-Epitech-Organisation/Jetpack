@@ -31,6 +31,10 @@ server: $(BUILD_DIR)
 $(BUILD_DIR):
 	@mkdir -p $(BUILD_DIR)
 
+tests_run:
+	@echo "Running tests... (placeholder)"
+	@exit 0
+
 clean:
 	@$(RM) $(BUILD_DIR)/*
 	@$(RM) $(CLIENT_BIN)
@@ -41,4 +45,4 @@ fclean: clean
 
 re: fclean all
 
-.PHONY: all clean fclean re
+.PHONY: all clean fclean re tests_run
