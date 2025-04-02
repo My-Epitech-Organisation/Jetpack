@@ -1,0 +1,64 @@
+name: CI & Mirror Push
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build_and_test:
+    name: Build & Test (Epitech Docker)
+    runs-on: ubuntu-latest
+    container:
+      image: epitechcontent/epitest-docker
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Compile Project
+        run: make all
+
+      - name: Run Tests
+        run: make tests_run
+
+  coding_style:
+    name: Coding Style Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Create Reports Directory
+        run: mkdir -p reports
+
+      - name: Download Coding Style Checker
+        run: |
+          curl -L https://raw.githubusercontent.com/Epitech/coding-style-checker/refs/heads/main/coding-style.sh -o coding-style.sh
+          chmod +x coding-style.sh
+
+      - name: Run Coding Style Checker
+        run: ./coding-style.sh . reports
+
+  mirror:
+    name: Mirror to Epitech Repository
+    needs: [build_and_test, coding_style]
+
+    if: ${{ github.repository != 'EpitechPromo2028/B-NWP-400-NAN-4-1-jetpack-santiago.pidcova' }}
+    runs-on: ubuntu-latest
+    steps:
+
+      - name: Checkout Full Repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Mirror Repository to Epitech
+        uses: pixta-dev/repository-mirroring-action@v1
+        with:
+
+          target_repo_url: git@github.com:EpitechPromo2028/B-NWP-400-NAN-4-1-jetpack-santiago.pidcova.git
+
+          ssh_private_key: ${{ secrets.EPITECH_SSH_KEY }}
