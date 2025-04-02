@@ -4,6 +4,7 @@ build/
 maps/
 jetpack_client
 jetpack_server
+subject.md
 
 # Prerequisites
 *.d
