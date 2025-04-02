@@ -25,18 +25,13 @@ void accept_client(server_t *server)
     server->fds[server->nfds].fd = new_client->fd;
     server->fds[server->nfds].events = POLLIN;
     server->nfds++;
-    put_str_fd(new_client->fd, "ID ");
-    char buffer[32];
-    sprintf(buffer, "%d", server->client_count);
-    server->client_count++;
-    put_str_fd(new_client->fd, buffer);
-    put_str_fd(new_client->fd, "\n");
 }
 
 void loop_clients(server_t *server, int current_idx)
 {
     if (server->fds[current_idx].revents & POLLIN) {
-        if (server->fds[current_idx].fd == server->fd)
+        if (server->fds[current_idx].fd == server->fd &&
+            server->client_count < MAX_CLIENTS)
             accept_client(server);
     }
 }

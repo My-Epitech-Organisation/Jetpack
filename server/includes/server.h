@@ -23,7 +23,7 @@
 #ifndef SERVER_H_
     #define SERVER_H_
 
-    #define MAX_CLIENTS 150
+    #define MAX_CLIENTS 2
 
 typedef struct client_s {
     int fd;
@@ -39,7 +39,10 @@ typedef struct client_s {
 
 typedef struct server_s {
     int port;
-    char *map;
+    char *map_path;
+    char **map;
+    size_t map_rows;
+    size_t map_cols;
     int fd;
     struct sockaddr_in addr;
     struct pollfd *fds;
@@ -71,5 +74,7 @@ void put_str_fd(int fd, char *str);
 int check_args(int argc, char **argv);
 bool check_port(char *port);
 bool check_path_map(char *path);
+
+void load_map(server_t *server);
 
 #endif /* !SERVER_H_ */
