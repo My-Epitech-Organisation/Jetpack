@@ -1,0 +1,355 @@
+=============================================================================
+Merged Jetpack Protocol (MJP)
+=============================================================================
+Status of This Memo
+
+   This memo présente une spécification expérimentale pour un protocole
+   binaire appelé "Merged Jetpack Protocol" (MJP). Il fusionne des éléments
+   de deux RFC précédentes, dans le but de fournir un système de communication
+   robuste, modulaire et facile à implémenter pour un jeu Jetpack multijoueur.
+
+=============================================================================
+1. Introduction
+=============================================================================
+
+   L’objectif de ce protocole est d’orchestrer la communication entre un
+   serveur (autorité sur la logique de jeu) et un ou plusieurs clients
+   (gérant l’affichage et le contrôle du joueur). MJP repose sur TCP et
+   utilise une structure d’en-tête unique (contenant un Magic Byte, un
+   Type et une Length) suivie d’un payload adapté.
+
+   Les principales fonctionnalités sont :
+   - **Connexion et identification** (CLIENT_CONNECT / SERVER_WELCOME)
+   - **Envoi de la carte** (MAP_CHUNK), potentiellement fractionnée
+   - **Démarrage de la partie** (GAME_START)
+   - **Envoi d’inputs** du client (CLIENT_INPUT)
+   - **Retour d’état** serveur (GAME_STATE) incluant un champ TICK
+   - **Fin de partie** (GAME_END)
+   - **Déconnexion explicite** (CLIENT_DISCONNECT)
+   - **Messages de debug** (DEBUG_INFO) pour le mode -d
+
+=============================================================================
+2. En-tête et format général
+=============================================================================
+
+2.1. Structure d’en-tête
+
+   Tous les messages partagent un en-tête de 4 octets :
+
+     0               1               2               3
+     +---------------+---------------+---------------+
+     | Magic (1B)    | Type (1B)     | Length (2B)   |
+     +---------------+---------------+---------------+
+     |            Payload (Length - 4 octets)        |
+     +-----------------------------------------------+
+
+   - **Magic (1B)** : un octet constant, conseillé à 0xAB. Permet de
+     détecter la validité du paquet et resynchroniser si besoin.
+   - **Type (1B)** : identifie le message (CLIENT_CONNECT, etc.).
+   - **Length (2B, network byte order)** : taille totale du message,
+     incluant l’en-tête (donc minimalement 4).
+   - **Payload** : dépend de la valeur de Type.
+
+   Si `Length` est inférieur à 4 ou si `Magic` diffère de 0xAB,
+   l’implémentation **DOIT** ignorer le paquet ou fermer la connexion
+   selon la politique choisie.
+
+2.2. Ordre des octets
+
+   Tous les champs multi-octets (Length, indices, dimensions, etc.)
+   sont en **network byte order** (big-endian).
+
+=============================================================================
+3. Énumération des Types de paquets
+=============================================================================
+
+   Les Types recommandés (1 octet) sont :
+
+   +-----------+---------------------------+
+   | Type (u8) | Nom                       |
+   +-----------+---------------------------+
+   | 0x01      | CLIENT_CONNECT            |
+   | 0x02      | SERVER_WELCOME            |
+   | 0x03      | MAP_CHUNK                 |
+   | 0x04      | GAME_START                |
+   | 0x05      | CLIENT_INPUT              |
+   | 0x06      | GAME_STATE                |
+   | 0x07      | GAME_END                  |
+   | 0x08      | CLIENT_DISCONNECT         |
+   | 0x09      | DEBUG_INFO (optionnel)    |
+   +-----------+---------------------------+
+
+   Cette liste est extensible. L’implémentation peut accepter d’autres
+   valeurs pour gérer des fonctionnalités avancées.
+
+=============================================================================
+4. Description des messages
+=============================================================================
+
+4.1. CLIENT_CONNECT (0x01) – Client → Serveur
+
+   ### But
+   Demande de connexion (similaire à un HELLO). Le client propose un
+   Player ID (ou zéro) et d’autres informations.
+
+   ### Format du payload
+     0               1               2
+     +---------------+---------------+-------------------- ...
+     | ReqPlayerID(1B) | NameLen(1B) | Nom ASCII [NameLen]
+     +---------------+---------------+-------------------- ...
+
+   - **ReqPlayerID (1B)** : ID souhaité par le client (0 => Laisser
+     le serveur assigner).
+   - **NameLen (1B)** : longueur du nom du joueur.
+   - **Nom ASCII [NameLen]** : chaîne de caractères pour identifier
+     le joueur (pas nécessairement terminée par \0).
+
+   Ex : si NameLen=5 et Nom="Alice", on aura un payload de 7 octets.
+
+4.2. SERVER_WELCOME (0x02) – Serveur → Client
+
+   ### But
+   Réponse à CLIENT_CONNECT. Attribue un ID effectif, signale si
+   l’accès est accepté ou refusé.
+
+   ### Format du payload
+     0               1               2
+     +---------------+---------------+-------------- ...
+     | AcceptCode(1B)| AssignedID(1B)| Option(s)...
+     +---------------+---------------+-------------- ...
+
+   - **AcceptCode (1B)** : 1=accepté, 0=refusé.
+   - **AssignedID (1B)** : ID final attribué au client.
+   - **Option(s)** : On peut, par ex., inclure un champ version, un
+     champ nbMaxPlayers, etc. (taille variable).
+
+   Si `AcceptCode=0`, le serveur **DOIT** fermer la connexion juste après.
+
+4.3. MAP_CHUNK (0x03) – Serveur → Client
+
+   ### But
+   Permet au serveur d’envoyer la carte (ou toute donnée similaire)
+   en un ou plusieurs blocs, particulièrement utile pour une carte
+   volumineuse.
+
+   ### Format du payload
+     0       1       2       3       4               5
+     +-------+-------+-------+-------+---------------+------ ...
+     | ChunkIndex(2B)| ChunkCount(2B)| ChunkData[...] (variable)
+     +-------+-------+-------+-------+---------------+------ ...
+
+   - **ChunkIndex (2B)** : indice du bloc (0, 1, 2, …).
+   - **ChunkCount (2B)** : nombre total de blocs pour transmettre
+     la map complète.
+   - **ChunkData** : portion de la map (format binaire ou ASCII).
+
+   L’utilisation de plusieurs chunks rend l’envoi plus modulaire.
+   Si la carte est petite, on peut se contenter d’un unique chunk
+   (Index=0, Count=1).
+
+4.4. GAME_START (0x04) – Serveur → Client
+
+   ### But
+   Signale le début effectif de la partie, après que tous les joueurs
+   requis soient connectés et aient reçu la map.
+
+   ### Format du payload
+   Ex :
+     0               1       2       3       4
+     +---------------+-------+-------+-------+ ...
+     | PlayerCount(1B)| StartX(2B) | StartY(2B)| ...
+     +---------------+-------+-------+-------+ ...
+
+   - **PlayerCount (1B)** : nombre de joueurs dans la partie.
+   - **StartX, StartY (2B chacun)** : position initiale recommandée.
+   - Ajouts possibles : vitesse par défaut, gravité, etc.
+
+   Une fois GAME_START reçu, le client doit commencer à envoyer les inputs.
+
+4.5. CLIENT_INPUT (0x05) – Client → Serveur
+
+   ### But
+   Transmettre les actions d’un joueur (e.g. left/right, jetpack, etc.).
+
+   ### Format du payload
+     0       1       2
+     +-------+-------+---------------- ...
+     | PlayerID(1B) | InputMask(1B) |  (Option: SequenceNumber(2B), etc.)
+     +-------+-------+---------------- ...
+
+   - **PlayerID (1B)** : l’ID attribué (AssignedID) par le serveur.
+   - **InputMask (1B)** : champ de bits indiquant les actions :
+       - bit 0 : move left
+       - bit 1 : move right
+       - bit 2 : jetpack (1=actif, 0=inactif)
+       - bits 3..7 : libre
+   - **(Option)** SequenceNumber(2B) si on veut un tracking plus précis
+     (pas obligatoire).
+
+4.6. GAME_STATE (0x06) – Serveur → Client
+
+   ### But
+   Envoie l’état de la partie (positions, scores, etc.) calculé par
+   le serveur. Permet au client de s’aligner sur la vérité serveur.
+
+   ### Format du payload (exemple)
+     0       1       2       3       4       5
+     +-------+-------+-------+-------+-------+------
+     | TICK(4B)      |  NumPlayers(1B) |  Data[] ...
+     +-------+-------+-------+-------+-------+------
+
+   - **TICK (4B)** : compteur d’itérations ou de frames côté serveur.
+   - **NumPlayers (1B)** : nombre de joueurs inclus dans ce state.
+   - **Data[]** : pour chaque joueur :
+       - PlayerID (1B)
+       - PosX (2B), PosY (2B)
+       - Score (2B)
+       - AliveFlag (1B)
+       - (et plus si besoin)
+
+   La taille exacte dépend du nombre de joueurs et des informations
+   incluses. Le client doit rectifier son affichage dès réception.
+
+4.7. GAME_END (0x07) – Serveur → Client
+
+   ### But
+   Indique la fin de la partie et précise le vainqueur, ou l’absence
+   de vainqueur.
+
+   ### Format du payload
+     0       1       2       3
+     +-------+-------+-------+------- ...
+     | ReasonCode(1B)| WinnerID(1B)| Scores...
+     +-------+-------+-------+------- ...
+
+   - **ReasonCode (1B)** : code décrivant la raison (1=Fin map,
+     2=Mort, 3=Déconnexion, etc.).
+   - **WinnerID (1B)** : ID du gagnant, ou 0xFF si nul.
+   - **Scores** : on peut par ex. mettre 2B par joueur, etc.
+
+   Après ce message, le client peut clore la connexion ou retourner
+   à un menu principal.
+
+4.8. CLIENT_DISCONNECT (0x08) – Client → Serveur (ou Serveur → Client)
+
+   ### But
+   Informer la partie distante d’une volonté de déconnexion propre.
+
+   ### Format du payload
+     - Aucun payload (Length=4)
+
+   Aussitôt reçu, la partie distante peut libérer les ressources.
+
+4.9. DEBUG_INFO (0x09) – Optionnel, bidirectionnel
+
+   ### But
+   Envoyer des messages de debugging, si le mode `-d` est activé.
+   Libre d’inclure du texte ou d’autres informations exploitables.
+
+   ### Format du payload
+     0               1         ...
+     +---------------+---------+---------
+     | DebugLen(2B) | DebugData[DebugLen]
+     +---------------+---------+---------
+
+   - **DebugLen (2B)** : taille du champ DebugData.
+   - **DebugData** : ex. chaîne ASCII, logs, etc.
+
+=============================================================================
+5. Flux général
+=============================================================================
+
+   1. **Ouverture de connexion TCP** :
+      - Le client se connecte au serveur via le port choisi.
+
+   2. **CLIENT_CONNECT / SERVER_WELCOME** :
+      - Le client envoie CLIENT_CONNECT (Type=0x01).
+      - Le serveur répond par SERVER_WELCOME (0x02) pour accepter ou
+        refuser.
+
+   3. **Envoi de la carte** :
+      - Le serveur envoie un ou plusieurs MAP_CHUNK (0x03).
+        S’il y a `ChunkCount`=N, le client sait attendre tous les
+        index [0..N-1].
+
+   4. **Lancement de la partie** :
+      - Le serveur envoie GAME_START (0x04).
+
+   5. **Boucle de jeu** :
+      - Le client envoie régulièrement CLIENT_INPUT (0x05).
+      - Le serveur diffuse GAME_STATE (0x06) avec TICK, positions, scores.
+      - (Optionnel) DEBUG_INFO (0x09) s’il y a un mode debug.
+
+   6. **Fin de partie** :
+      - Le serveur envoie GAME_END (0x07) avec un ReasonCode et un
+        WinnerID.
+      - Le client se prépare à se déconnecter (CLIENT_DISCONNECT 0x08).
+
+   7. **Fermeture** :
+      - Chaque côté peut envoyer CLIENT_DISCONNECT (0x08) ou
+        fermer la socket.
+
+=============================================================================
+6. Format de la carte et reconstitution
+=============================================================================
+
+   Le protocole n’impose pas un format unique pour **ChunkData** dans
+   MAP_CHUNK. On peut utiliser :
+
+   - **Format ASCII** : chaque ligne du fichier, stockée dans un chunk.
+   - **Format binaire** : un header (width/height) suivi d’un tableau
+     d’octets (0x00=vide, 0x01=wall, 0x02=coin, etc.).
+
+   Exemple d’implémentation :
+   - Le serveur lit un fichier .map (4 octets width/height + data).
+   - Il scinde ce data en chunks de ~512 octets.
+   - Envoie MAP_CHUNK(ChunkIndex, ChunkCount, chunkData).
+
+   Le client reconstruit localement :
+   - Stocker chunkData[i] dans un buffer commun.
+   - Quand tous les chunks sont reçus, on dispose de la map.
+
+=============================================================================
+7. Sécurité et validation
+=============================================================================
+
+   1. **Validation serveur** :
+      - Le serveur gère collisions et scores.
+      - Un input incohérent (téléportation, etc.) est ignoré.
+
+   2. **Magic Byte** :
+      - Utilisé pour filtrer les paquets mal formés.
+
+   3. **Taille vs. Payload** :
+      - Le serveur/client doit vérifier `Length` correspond à la taille
+        reçue. Sinon, le paquet est rejeté.
+
+   4. **Déconnexions** :
+      - Timeout si aucun input.
+      - Si un client abuse d’envois invalides, le serveur peut rompre
+        la connexion.
+
+   5. **Encryption / TLS** (optionnel) :
+      - Couche supplémentaire possible.
+
+=============================================================================
+8. Conclusion
+=============================================================================
+
+   Ce "Merged Jetpack Protocol" (MJP) reprend la robustesse de la
+   structure (Magic Byte, chunking pour la map, etc.) tout en gardant la
+   clarté et la simplicité d’un schéma de messages (CLIENT_CONNECT,
+   GAME_STATE avec TICK, etc.). Il offre :
+
+   - **Flexibilité** (MAP_CHUNK multi-blocs ou bloc unique).
+   - **Simplicité** (Bitmask pour INPUT, server-centré).
+   - **Protection** (Magic Byte, validations minimales).
+   - **Extensibilité** (Types additionnels, champs optionnels).
+
+   Les implémentations du serveur et du client devront respecter ce
+   format pour assurer une compatibilité maximale et autoriser une
+   gestion aisée des évolutions futures.
+
+=============================================================================
+End of Merged Jetpack Protocol RFC
+=============================================================================
