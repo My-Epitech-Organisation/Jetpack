@@ -23,3 +23,35 @@ void write_map_payload(uint8_t *buffer, uint16_t chunk_index,
     buffer[6] = (chunk_count >> 8) & 0xFF;
     buffer[7] = chunk_count & 0xFF;
 }
+
+void write_start_payload(uint8_t *buffer, server_t *server)
+{
+    buffer[4] = server->client_count;
+    buffer[5] = (server->start_x >> 8) & 0xFF;
+    buffer[6] = server->start_x & 0xFF;
+    buffer[7] = (server->start_y >> 8) & 0xFF;
+    buffer[8] = server->start_y & 0xFF;
+}
+
+void write_state_payload(uint8_t *buffer, server_t *server,
+    uint8_t player_count)
+{
+    buffer[4] = (server->tick >> 24) & 0xFF;
+    buffer[5] = (server->tick >> 16) & 0xFF;
+    buffer[6] = (server->tick >> 8) & 0xFF;
+    buffer[7] = server->tick & 0xFF;
+    buffer[8] = player_count;
+}
+
+void write_data_state_payload(uint8_t *buffer, client_t *client, size_t offset,
+    int i)
+{
+    buffer[offset + 1] = i;
+    buffer[offset + 2] = (client->x >> 8) & 0xFF;
+    buffer[offset + 3] = client->x & 0xFF;
+    buffer[offset + 4] = (client->y >> 8) & 0xFF;
+    buffer[offset + 5] = client->y & 0xFF;
+    buffer[offset + 6] = (client->score >> 8) & 0xFF;
+    buffer[offset + 7] = client->score & 0xFF;
+    buffer[offset + 8] = client->is_alive ? 1 : 0;
+}

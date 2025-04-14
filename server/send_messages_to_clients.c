@@ -49,21 +49,3 @@ void send_map(server_t *server, int client_fd)
     for (uint8_t col_index = 0; col_index < server->map_cols; col_index++)
         send_map_chunk(server, client_fd, col_index);
 }
-
-void send_game_start(server_t *server, int client_fd)
-{
-    uint8_t buffer[9];
-    uint16_t length = 9;
-    ssize_t bytes_sent;
-
-    write_header(buffer, GAME_START, length);
-    buffer[4] = server->client_count;
-    buffer[5] = (server->start_x >> 8) & 0xFF;
-    buffer[6] = server->start_x & 0xFF;
-    buffer[7] = (server->start_y >> 8) & 0xFF;
-    buffer[8] = server->start_y & 0xFF;
-    bytes_sent = send(client_fd, buffer, sizeof(buffer), 0);
-    if (bytes_sent == -1) {
-        perror("send");
-    }
-}
