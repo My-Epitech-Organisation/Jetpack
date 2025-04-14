@@ -20,6 +20,10 @@ void handle_message(server_t *server, int client_id, uint16_t length)
                 launch_game(server);
             }
             break;
+        case GAME_INPUT:
+            printf("Client %d envoie des inputs\n", client_id);
+            handle_input(server, client_id, server->buffer, length);
+            break;
         default:
             printf("Message inconnu (type: 0x%02X) de client %d\n",
                 server->message_type, client_id);
