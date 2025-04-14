@@ -34,5 +34,6 @@ void server(int argc, char **argv)
     set_listen(server->fd);
     load_map(server);
     handle_clients(server);
+    launch_game(server);
     close_everything(server);
 }
