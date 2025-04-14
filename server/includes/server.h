@@ -24,6 +24,16 @@
     #define SERVER_H_
 
     #define MAX_CLIENTS 2
+    #define MAGIC_BYTE 0xAB
+    #define CLIENT_CONNECT 0x01
+    #define SERVER_WELCOME 0x02
+    #define MAP_CHUNK 0x03
+    #define GAME_START 0x04
+    #define GAME_INPUT 0x05
+    #define GAME_STATE 0x06
+    #define GAME_END 0x07
+    #define CLIENT_DISCONNECT 0x08
+    #define DEBUG_INFO 0x09
 
 typedef struct client_s {
     int fd;
@@ -43,6 +53,7 @@ typedef struct server_s {
     char **map;
     size_t map_rows;
     size_t map_cols;
+    uint8_t message_type;
     int fd;
     struct sockaddr_in addr;
     struct pollfd *fds;
@@ -54,11 +65,22 @@ typedef struct server_s {
     bool debug_mode;
 } server_t;
 
+// Error handling functions
 void handle_error(char *msg);
 int arg_missing(int argc);
+int check_args(int argc, char **argv);
+bool check_port(char *port);
+bool check_path_map(char *path);
+bool check_header(unsigned char header[4], int i, server_t *server);
+int check_payload_length(uint16_t payload_length, server_t *server, int i);
+int check_read(int read_ret, uint16_t payload_length, char *payload);
 
 void parsing_launch(int argc, char **argv, server_t *server);
 
+// Sending messages to clients
+void send_welcome(int client_fd, uint8_t assigned_id);
+
+// Server set up functions
 void server(int argc, char **argv);
 int set_server_socket(void);
 void set_bind(server_t *server);
@@ -70,10 +92,6 @@ void parse_line(server_t *server, int i);
 void read_client(server_t *server, int i);
 
 void put_str_fd(int fd, char *str);
-
-int check_args(int argc, char **argv);
-bool check_port(char *port);
-bool check_path_map(char *path);
 
 void load_map(server_t *server);
 

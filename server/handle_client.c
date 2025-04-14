@@ -27,20 +27,37 @@ void accept_client(server_t *server)
     server->nfds++;
 }
 
+void check_read_client(server_t *server, int current_idx)
+{
+    int client_idx = -1;
+
+    for (int j = 0; j < server->client_count; j++) {
+        if (server->client[j]->fd == server->fds[current_idx].fd) {
+            client_idx = j;
+            break;
+        }
+    }
+    if (client_idx != -1)
+        read_client(server, client_idx);
+}
+
 void loop_clients(server_t *server, int current_idx)
 {
     if (server->fds[current_idx].revents & POLLIN) {
         if (server->fds[current_idx].fd == server->fd &&
-            server->client_count < MAX_CLIENTS)
+            server->client_count < MAX_CLIENTS) {
             accept_client(server);
+            server->client_count++;
+        } else
+            check_read_client(server, current_idx);
     }
 }
 
 void handle_clients(server_t *server)
 {
-    server->client = NULL;
+    server->client = calloc(MAX_CLIENTS, sizeof(client_t *));
     server->client_count = 0;
-    server->fds = malloc(sizeof(struct pollfd) * MAX_CLIENTS + 1);
+    server->fds = malloc(sizeof(struct pollfd) * (MAX_CLIENTS + 1));
     server->nfds = 1;
     server->fds[0].fd = server->fd;
     server->fds[0].events = POLLIN;
