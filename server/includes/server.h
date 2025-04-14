@@ -53,6 +53,8 @@ typedef struct server_s {
     char **map;
     size_t map_rows;
     size_t map_cols;
+    uint16_t start_x;
+    uint16_t start_y;
     uint8_t message_type;
     int fd;
     struct sockaddr_in addr;
@@ -75,10 +77,15 @@ bool check_header(unsigned char header[4], int i, server_t *server);
 int check_payload_length(uint16_t payload_length, server_t *server, int i);
 int check_read(int read_ret, uint16_t payload_length, char *payload);
 
-void parsing_launch(int argc, char **argv, server_t *server);
-
 // Sending messages to clients
 void send_welcome(int client_fd, uint8_t assigned_id);
+void send_game_start(server_t *server, int client_fd);
+void send_map(server_t *server, int client_fd);
+
+// Writing messages to clients
+void write_header(uint8_t *buf, uint8_t type, uint16_t total_len);
+void write_map_payload(uint8_t *buffer, uint16_t chunk_index,
+    uint16_t chunk_count);
 
 // Server set up functions
 void server(int argc, char **argv);
@@ -86,13 +93,13 @@ int set_server_socket(void);
 void set_bind(server_t *server);
 void set_listen(int fd);
 
+// Handling client functions
 void handle_clients(server_t *server);
-
-void parse_line(server_t *server, int i);
 void read_client(server_t *server, int i);
 
+void parsing_launch(int argc, char **argv, server_t *server);
 void put_str_fd(int fd, char *str);
-
 void load_map(server_t *server);
+void launch_game(server_t *server);
 
 #endif /* !SERVER_H_ */

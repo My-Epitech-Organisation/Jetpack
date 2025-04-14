@@ -15,6 +15,10 @@ void handle_message(server_t *server, int client_id, uint16_t length)
         case CLIENT_CONNECT:
             printf("Client %d veut se connecter\n", client_id);
             send_welcome(server->client[client_id]->fd, client_id);
+            if (server->client_count == MAX_CLIENTS) {
+                printf("Tous les clients sont connectés, envoi de la carte\n");
+                launch_game(server);
+            }
             break;
         default:
             printf("Message inconnu (type: 0x%02X) de client %d\n",
