@@ -45,6 +45,13 @@ typedef struct client_s {
     char ip[INET_ADDRSTRLEN];
     int data_port;
     int data_fd;
+    int score;
+    bool is_alive;
+    int x;
+    int y;
+    bool input_left;
+    bool input_right;
+    bool input_jetpack;
 } client_t;
 
 typedef struct server_s {
@@ -65,6 +72,7 @@ typedef struct server_s {
     client_t **client;
     int client_count;
     bool debug_mode;
+    uint32_t tick;
 } server_t;
 
 // Error handling functions
@@ -81,11 +89,20 @@ int check_read(int read_ret, uint16_t payload_length, char *payload);
 void send_welcome(int client_fd, uint8_t assigned_id);
 void send_game_start(server_t *server, int client_fd);
 void send_map(server_t *server, int client_fd);
+void send_game_state(server_t *server, int client_fd);
+void send_game_state_to_all_clients(server_t *server);
+void send_game_start(server_t *server, int client_fd);
+void send_game_state_to_all_clients(server_t *server);
 
 // Writing messages to clients
 void write_header(uint8_t *buf, uint8_t type, uint16_t total_len);
 void write_map_payload(uint8_t *buffer, uint16_t chunk_index,
     uint16_t chunk_count);
+void write_start_payload(uint8_t *buffer, server_t *server);
+void write_state_payload(uint8_t *buffer, server_t *server,
+    uint8_t player_count);
+void write_data_state_payload(uint8_t *buffer, client_t *client, size_t offset,
+    int i);
 
 // Server set up functions
 void server(int argc, char **argv);
@@ -96,10 +113,13 @@ void set_listen(int fd);
 // Handling client functions
 void handle_clients(server_t *server);
 void read_client(server_t *server, int i);
+void handle_input(server_t *server, int client_id, char *payload,
+    uint16_t len);
 
 void parsing_launch(int argc, char **argv, server_t *server);
 void put_str_fd(int fd, char *str);
 void load_map(server_t *server);
 void launch_game(server_t *server);
+void game_loop(server_t *server);
 
 #endif /* !SERVER_H_ */

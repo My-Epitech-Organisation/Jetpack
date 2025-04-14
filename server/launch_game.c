@@ -13,4 +13,5 @@ void launch_game(server_t *server)
         send_map(server, server->client[i]->fd);
         send_game_start(server, server->client[i]->fd);
     }
+    game_loop(server);
 }
