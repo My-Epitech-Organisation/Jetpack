@@ -1,10 +1,11 @@
 # Jetpack
 test*
-build/
+build
 maps/
 jetpack_client
 jetpack_server
 subject.md
+.cache
 
 # Prerequisites
 *.d

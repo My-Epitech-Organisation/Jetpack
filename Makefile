@@ -17,6 +17,7 @@ CD = cd
 RM = rm -rf
 CMAKE = cmake
 MAKE = make
+CLANG_FORMAT = clang-format
 
 all: client server
 
@@ -35,6 +36,11 @@ tests_run:
 	@echo "Running tests... (placeholder)"
 	@exit 0
 
+normalize:
+	@echo "Applying clang format to all C++ files..."
+	@find ./client -type f \( -name "*.cpp" -o -name "*.hpp" \) -exec $(CLANG_FORMAT) -i -style=llvm {} \;
+	@echo "Formatting complete!"
+
 clean:
 	@$(RM) $(BUILD_DIR)/*
 	@$(RM) $(CLIENT_BIN)
@@ -45,4 +51,4 @@ fclean: clean
 
 re: fclean all
 
-.PHONY: all clean fclean re tests_run
+.PHONY: all clean fclean re tests_run normalize
