@@ -12,7 +12,6 @@
 #include "protocol.hpp"
 #include <atomic>
 #include <mutex>
-#include <string>
 #include <vector>
 
 namespace jetpack {

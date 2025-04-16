@@ -13,7 +13,6 @@
 #include <SFML/Graphics.hpp>
 #include <atomic>
 #include <memory>
-#include <string>
 #include <thread>
 
 namespace jetpack {

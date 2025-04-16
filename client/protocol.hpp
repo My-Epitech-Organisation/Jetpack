@@ -10,8 +10,6 @@
 #define CLIENT_PROTOCOL_HPP_
 
 #include <cstdint>
-#include <string>
-#include <vector>
 
 namespace jetpack {
 namespace protocol {
