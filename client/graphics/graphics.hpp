@@ -9,29 +9,29 @@
 #ifndef CLIENT_GRAPHICS_GRAPHICS_HPP_
 #define CLIENT_GRAPHICS_GRAPHICS_HPP_
 
-#include <SFML/Graphics.hpp>
-#include <thread>
-#include <atomic>
-#include <string>
-#include <memory>
 #include "../gamestate.hpp"
+#include <SFML/Graphics.hpp>
+#include <atomic>
+#include <memory>
+#include <string>
+#include <thread>
 
 namespace jetpack {
 namespace graphics {
 
 class Graphics {
- public:
-  Graphics(GameState* gameState, bool debugMode);
+public:
+  Graphics(GameState *gameState, bool debugMode);
   ~Graphics();
 
   void run();
   void stop();
   bool isRunning() const;
 
- private:
+private:
   // Window and game state
   std::unique_ptr<sf::RenderWindow> window_;
-  GameState* gameState_;
+  GameState *gameState_;
   bool debugMode_;
   std::atomic<bool> running_;
   std::atomic<bool> graphicsInitialized_;
@@ -39,10 +39,11 @@ class Graphics {
 
   // SFML objects
   sf::Font font_;
-  sf::CircleShape playerShape_;     // Green circle
-  sf::RectangleShape wallShape_;    // Red square
-  sf::CircleShape coinShape_;       // Yellow circle
-  sf::RectangleShape electricShape_; // Yellow triangle (approximated with rectangle)
+  sf::CircleShape playerShape_;  // Green circle
+  sf::RectangleShape wallShape_; // Red square
+  sf::CircleShape coinShape_;    // Yellow circle
+  sf::RectangleShape
+      electricShape_; // Yellow triangle (approximated with rectangle)
 
   // Game scale factors
   const float TILE_SIZE = 20.0f;
@@ -66,8 +67,7 @@ class Graphics {
   void handleKeyPress(sf::Keyboard::Key key, bool isPressed);
 };
 
-}  // namespace graphics
-}  // namespace jetpack
+} // namespace graphics
+} // namespace jetpack
 
-#endif  // CLIENT_GRAPHICS_GRAPHICS_HPP_
-
+#endif // CLIENT_GRAPHICS_GRAPHICS_HPP_

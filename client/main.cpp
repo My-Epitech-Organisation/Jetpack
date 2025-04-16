@@ -6,33 +6,37 @@
 ** Main client entrypoint
 */
 
-#include <iostream>
-#include <string>
-#include <memory>
-#include <thread>
-#include <csignal>
-#include "network/network.hpp"
-#include "graphics/graphics.hpp"
 #include "gamestate.hpp"
+#include "graphics/graphics.hpp"
+#include "network/network.hpp"
+#include <csignal>
+#include <iostream>
+#include <memory>
+#include <string>
+#include <thread>
 
 // Global pointers for signal handling
-jetpack::network::Network* g_network = nullptr;
-jetpack::graphics::Graphics* g_graphics = nullptr;
+jetpack::network::Network *g_network = nullptr;
+jetpack::graphics::Graphics *g_graphics = nullptr;
 
 void signal_handler(int signal) {
-  std::cout << "Received signal " << signal << ", shutting down..." << std::endl;
-  if (g_network) g_network->stop();
-  if (g_graphics) g_graphics->stop();
+  std::cout << "Received signal " << signal << ", shutting down..."
+            << std::endl;
+  if (g_network)
+    g_network->stop();
+  if (g_graphics)
+    g_graphics->stop();
 }
 
-void print_usage(const char* program_name) {
-  std::cout << "Usage: " << program_name << " -h <host> -p <port> [-d]" << std::endl;
+void print_usage(const char *program_name) {
+  std::cout << "Usage: " << program_name << " -h <host> -p <port> [-d]"
+            << std::endl;
   std::cout << "  -h <host>   Server hostname or IP" << std::endl;
   std::cout << "  -p <port>   Server port" << std::endl;
   std::cout << "  -d          Enable debug mode" << std::endl;
 }
 
-int main(int argc, char* argv[]) {
+int main(int argc, char *argv[]) {
   // Parse command line arguments
   std::string host;
   int port = 0;
@@ -97,7 +101,7 @@ int main(int argc, char* argv[]) {
 
     std::cout << "Client shutting down" << std::endl;
 
-  } catch (const std::exception& e) {
+  } catch (const std::exception &e) {
     std::cerr << "Exception: " << e.what() << std::endl;
     return 1;
   }

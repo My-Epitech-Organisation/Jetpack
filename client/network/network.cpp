@@ -7,22 +7,21 @@
 */
 
 #include "network.hpp"
-#include <iostream>
-#include <cstring>
-#include <netdb.h>
-#include <chrono>
-#include <thread>
 #include <algorithm>
 #include <arpa/inet.h>
+#include <chrono>
+#include <cstring>
+#include <iostream>
+#include <netdb.h>
+#include <thread>
 
 namespace jetpack {
 namespace network {
 
-Network::Network(const std::string& host, int port, bool debugMode,
-                 GameState* gameState)
+Network::Network(const std::string &host, int port, bool debugMode,
+                 GameState *gameState)
     : host_(host), port_(port), debugMode_(debugMode), socket_(-1),
-      running_(false), gameState_(gameState) {
-}
+      running_(false), gameState_(gameState) {}
 
 Network::~Network() {
   stop();
@@ -33,7 +32,7 @@ Network::~Network() {
 
 bool Network::connect() {
   struct sockaddr_in server_addr;
-  struct hostent* server;
+  struct hostent *server;
 
   // Create socket
   socket_ = socket(AF_INET, SOCK_STREAM, 0);
@@ -58,8 +57,8 @@ bool Network::connect() {
   server_addr.sin_port = htons(port_);
 
   // Connect to server
-  if (::connect(socket_, (struct sockaddr*)&server_addr,
-               sizeof(server_addr)) < 0) {
+  if (::connect(socket_, (struct sockaddr *)&server_addr, sizeof(server_addr)) <
+      0) {
     std::cerr << "Error connecting to server" << std::endl;
     close(socket_);
     socket_ = -1;
@@ -68,9 +67,9 @@ bool Network::connect() {
 
   // Send CLIENT_CONNECT packet
   std::vector<uint8_t> payload;
-  uint8_t reqPlayerID = 0;  // Let server assign ID
+  uint8_t reqPlayerID = 0; // Let server assign ID
   uint8_t nameLen = 5;
-  const char* name = "Guest";
+  const char *name = "Guest";
 
   payload.push_back(reqPlayerID);
   payload.push_back(nameLen);
@@ -112,27 +111,27 @@ void Network::run() {
       // Receive packet from server
       if (receivePacket(&header, &payload)) {
         switch (header.type) {
-          case protocol::SERVER_WELCOME:
-            handleServerWelcome(payload);
-            break;
-          case protocol::MAP_CHUNK:
-            handleMapChunk(payload);
-            break;
-          case protocol::GAME_START:
-            handleGameStart(payload);
-            break;
-          case protocol::GAME_STATE:
-            handleGameState(payload);
-            break;
-          case protocol::GAME_END:
-            handleGameEnd(payload);
-            break;
-          case protocol::DEBUG_INFO:
-            handleDebugInfo(payload);
-            break;
-          default:
-            debugPrint("Received unknown packet type: " +
-                      std::to_string(header.type));
+        case protocol::SERVER_WELCOME:
+          handleServerWelcome(payload);
+          break;
+        case protocol::MAP_CHUNK:
+          handleMapChunk(payload);
+          break;
+        case protocol::GAME_START:
+          handleGameStart(payload);
+          break;
+        case protocol::GAME_STATE:
+          handleGameState(payload);
+          break;
+        case protocol::GAME_END:
+          handleGameEnd(payload);
+          break;
+        case protocol::DEBUG_INFO:
+          handleDebugInfo(payload);
+          break;
+        default:
+          debugPrint("Received unknown packet type: " +
+                     std::to_string(header.type));
         }
       }
 
@@ -155,8 +154,9 @@ void Network::stop() {
 }
 
 bool Network::sendPacket(protocol::PacketType type,
-                         const std::vector<uint8_t>& payload) {
-  if (socket_ < 0) return false;
+                         const std::vector<uint8_t> &payload) {
+  if (socket_ < 0)
+    return false;
 
   protocol::PacketHeader header;
   header.magic = protocol::MAGIC_BYTE;
@@ -178,15 +178,16 @@ bool Network::sendPacket(protocol::PacketType type,
 
   if (debugMode_) {
     debugPrint("Sent packet: Type=" + std::to_string(type) +
-              ", Length=" + std::to_string(payload.size() + sizeof(header)));
+               ", Length=" + std::to_string(payload.size() + sizeof(header)));
   }
 
   return true;
 }
 
-bool Network::receivePacket(protocol::PacketHeader* header,
-                           std::vector<uint8_t>* payload) {
-  if (socket_ < 0) return false;
+bool Network::receivePacket(protocol::PacketHeader *header,
+                            std::vector<uint8_t> *payload) {
+  if (socket_ < 0)
+    return false;
 
   // Receive header
   ssize_t bytesRead = recv(socket_, header, sizeof(*header), 0);
@@ -227,13 +228,13 @@ bool Network::receivePacket(protocol::PacketHeader* header,
 
   if (debugMode_) {
     debugPrint("Received packet: Type=" + std::to_string(header->type) +
-              ", Length=" + std::to_string(packetLength));
+               ", Length=" + std::to_string(packetLength));
   }
 
   return true;
 }
 
-void Network::handleServerWelcome(const std::vector<uint8_t>& payload) {
+void Network::handleServerWelcome(const std::vector<uint8_t> &payload) {
   if (payload.size() < 2) {
     debugPrint("SERVER_WELCOME: Invalid payload size");
     return;
@@ -244,7 +245,7 @@ void Network::handleServerWelcome(const std::vector<uint8_t>& payload) {
 
   if (acceptCode == 1) {
     debugPrint("SERVER_WELCOME: Accepted, Assigned ID=" +
-              std::to_string(assignedId));
+               std::to_string(assignedId));
     gameState_->setConnected(true);
     gameState_->setAssignedId(assignedId);
   } else {
@@ -253,7 +254,7 @@ void Network::handleServerWelcome(const std::vector<uint8_t>& payload) {
   }
 }
 
-void Network::handleMapChunk(const std::vector<uint8_t>& payload) {
+void Network::handleMapChunk(const std::vector<uint8_t> &payload) {
   if (payload.size() < 4) {
     debugPrint("MAP_CHUNK: Invalid payload size");
     return;
@@ -263,7 +264,7 @@ void Network::handleMapChunk(const std::vector<uint8_t>& payload) {
   uint16_t chunkCount = (payload[2] << 8) | payload[3];
 
   debugPrint("MAP_CHUNK: Index=" + std::to_string(chunkIndex) +
-            ", Count=" + std::to_string(chunkCount));
+             ", Count=" + std::to_string(chunkCount));
 
   if (chunkIndex == 0) {
     // First chunk - assume it contains dimensions
@@ -275,8 +276,8 @@ void Network::handleMapChunk(const std::vector<uint8_t>& payload) {
     uint16_t width = (payload[4] << 8) | payload[5];
     uint16_t height = (payload[6] << 8) | payload[7];
 
-    debugPrint("Map dimensions: " + std::to_string(width) +
-              "x" + std::to_string(height));
+    debugPrint("Map dimensions: " + std::to_string(width) + "x" +
+               std::to_string(height));
 
     gameState_->setMapDimensions(width, height);
 
@@ -290,7 +291,7 @@ void Network::handleMapChunk(const std::vector<uint8_t>& payload) {
   }
 }
 
-void Network::handleGameStart(const std::vector<uint8_t>& payload) {
+void Network::handleGameStart(const std::vector<uint8_t> &payload) {
   if (payload.size() < 5) {
     debugPrint("GAME_START: Invalid payload size");
     return;
@@ -301,24 +302,24 @@ void Network::handleGameStart(const std::vector<uint8_t>& payload) {
   uint16_t startY = (payload[3] << 8) | payload[4];
 
   debugPrint("GAME_START: Players=" + std::to_string(playerCount) +
-            ", Start=(" + std::to_string(startX) + "," +
-            std::to_string(startY) + ")");
+             ", Start=(" + std::to_string(startX) + "," +
+             std::to_string(startY) + ")");
 
   gameState_->setGameRunning(true);
 }
 
-void Network::handleGameState(const std::vector<uint8_t>& payload) {
+void Network::handleGameState(const std::vector<uint8_t> &payload) {
   if (payload.size() < 5) {
     debugPrint("GAME_STATE: Invalid payload size");
     return;
   }
 
-  uint32_t tick = (payload[0] << 24) | (payload[1] << 16) |
-                 (payload[2] << 8) | payload[3];
+  uint32_t tick =
+      (payload[0] << 24) | (payload[1] << 16) | (payload[2] << 8) | payload[3];
   uint8_t numPlayers = payload[4];
 
   debugPrint("GAME_STATE: Tick=" + std::to_string(tick) +
-            ", Players=" + std::to_string(numPlayers));
+             ", Players=" + std::to_string(numPlayers));
 
   gameState_->setCurrentTick(tick);
 
@@ -341,17 +342,16 @@ void Network::handleGameState(const std::vector<uint8_t>& payload) {
 
     playerStates.push_back(state);
 
-    debugPrint("Player " + std::to_string(state.id) +
-              ": Pos=(" + std::to_string(state.posX) + "," +
-              std::to_string(state.posY) + "), Score=" +
-              std::to_string(state.score) + ", Alive=" +
-              std::to_string(state.alive));
+    debugPrint("Player " + std::to_string(state.id) + ": Pos=(" +
+               std::to_string(state.posX) + "," + std::to_string(state.posY) +
+               "), Score=" + std::to_string(state.score) +
+               ", Alive=" + std::to_string(state.alive));
   }
 
   gameState_->setPlayerStates(playerStates);
 }
 
-void Network::handleGameEnd(const std::vector<uint8_t>& payload) {
+void Network::handleGameEnd(const std::vector<uint8_t> &payload) {
   if (payload.size() < 2) {
     debugPrint("GAME_END: Invalid payload size");
     return;
@@ -361,13 +361,13 @@ void Network::handleGameEnd(const std::vector<uint8_t>& payload) {
   uint8_t winnerId = payload[1];
 
   debugPrint("GAME_END: Reason=" + std::to_string(reasonCode) +
-            ", Winner=" + std::to_string(winnerId));
+             ", Winner=" + std::to_string(winnerId));
 
   gameState_->setGameRunning(false);
   gameState_->setGameEnded(true, winnerId);
 }
 
-void Network::handleDebugInfo(const std::vector<uint8_t>& payload) {
+void Network::handleDebugInfo(const std::vector<uint8_t> &payload) {
   if (payload.size() < 2) {
     debugPrint("DEBUG_INFO: Invalid payload size");
     return;
@@ -380,8 +380,7 @@ void Network::handleDebugInfo(const std::vector<uint8_t>& payload) {
     return;
   }
 
-  std::string debugMsg(payload.begin() + 2,
-                      payload.begin() + 2 + debugLen);
+  std::string debugMsg(payload.begin() + 2, payload.begin() + 2 + debugLen);
   debugPrint("DEBUG_INFO: " + debugMsg);
 }
 
@@ -396,12 +395,11 @@ void Network::sendPlayerInput() {
   sendPacket(protocol::CLIENT_INPUT, payload);
 }
 
-void Network::debugPrint(const std::string& message) {
+void Network::debugPrint(const std::string &message) {
   if (debugMode_) {
     std::cout << "[Network] " << message << std::endl;
   }
 }
 
-}  // namespace network
-}  // namespace jetpack
-
+} // namespace network
+} // namespace jetpack

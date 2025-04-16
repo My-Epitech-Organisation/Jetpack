@@ -9,19 +9,20 @@
 #ifndef CLIENT_GAMESTATE_HPP_
 #define CLIENT_GAMESTATE_HPP_
 
-#include <mutex>
-#include <vector>
-#include <string>
-#include <atomic>
 #include "protocol.hpp"
+#include <atomic>
+#include <mutex>
+#include <string>
+#include <vector>
 
 namespace jetpack {
 
 class GameState {
- public:
-  GameState() : connected(false), assignedId(0), gameRunning(false),
-                inputMask(0), mapWidth(0), mapHeight(0), currentTick(0),
-                gameEnded(false), winnerId(0xFF) {}
+public:
+  GameState()
+      : connected(false), assignedId(0), gameRunning(false), inputMask(0),
+        mapWidth(0), mapHeight(0), currentTick(0), gameEnded(false),
+        winnerId(0xFF) {}
 
   // Thread-safe setters
   void setConnected(bool status);
@@ -29,8 +30,8 @@ class GameState {
   void setGameRunning(bool running);
   void setInputMask(uint8_t mask);
   void setMapDimensions(uint16_t width, uint16_t height);
-  void addMapChunk(const std::vector<uint8_t>& chunkData);
-  void setPlayerStates(const std::vector<protocol::PlayerState>& states);
+  void addMapChunk(const std::vector<uint8_t> &chunkData);
+  void setPlayerStates(const std::vector<protocol::PlayerState> &states);
   void setCurrentTick(uint32_t tick);
   void setGameEnded(bool ended, uint8_t winnerId);
 
@@ -46,7 +47,7 @@ class GameState {
   bool hasGameEnded() const;
   uint8_t getWinnerId() const;
 
- private:
+private:
   mutable std::mutex mutex_;
   std::atomic<bool> connected;
   uint8_t assignedId;
@@ -67,6 +68,6 @@ class GameState {
   uint8_t winnerId;
 };
 
-}  // namespace jetpack
+} // namespace jetpack
 
-#endif  // CLIENT_GAMESTATE_HPP_
+#endif // CLIENT_GAMESTATE_HPP_

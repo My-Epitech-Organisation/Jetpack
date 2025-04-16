@@ -7,29 +7,28 @@
 */
 
 #include "graphics.hpp"
+#include <iomanip>
 #include <iostream>
 #include <sstream>
-#include <iomanip>
 
 namespace jetpack {
 namespace graphics {
 
-Graphics::Graphics(GameState* gameState, bool debugMode)
+Graphics::Graphics(GameState *gameState, bool debugMode)
     : window_(nullptr), gameState_(gameState), debugMode_(debugMode),
       running_(false), graphicsInitialized_(false) {
   // Defer window creation to the run() method
 }
 
-Graphics::~Graphics() {
-  stop();
-}
+Graphics::~Graphics() { stop(); }
 
 bool Graphics::initializeWindow() {
   try {
-    window_ = std::make_unique<sf::RenderWindow>(sf::VideoMode(800, 600), "Jetpack Client");
+    window_ = std::make_unique<sf::RenderWindow>(sf::VideoMode(800, 600),
+                                                 "Jetpack Client");
     window_->setFramerateLimit(60);
     return true;
-  } catch (const std::exception& e) {
+  } catch (const std::exception &e) {
     std::cerr << "Failed to create SFML window: " << e.what() << std::endl;
     return false;
   }
@@ -59,7 +58,7 @@ bool Graphics::initializeResources() {
     if (!font_.loadFromFile("assets/jetpack_font.ttf")) {
       std::cerr << "Failed to load font, using system default" << std::endl;
     }
-  } catch (const std::exception& e) {
+  } catch (const std::exception &e) {
     std::cerr << "Font loading error: " << e.what() << std::endl;
   }
 
@@ -71,11 +70,11 @@ void Graphics::run() {
   graphicsThread_ = std::thread([this]() {
     // Try to initialize graphics in the thread
     graphicsInitialized_ = initializeWindow();
-   
+
     if (graphicsInitialized_) {
       // Only initialize resources if window was created successfully
       initializeResources();
-     
+
       // Main render loop
       while (running_ && window_ && window_->isOpen()) {
         processEvents();
@@ -83,7 +82,8 @@ void Graphics::run() {
         render();
       }
     } else {
-      std::cerr << "Graphics initialization failed - running in headless mode" << std::endl;
+      std::cerr << "Graphics initialization failed - running in headless mode"
+                << std::endl;
       // Keep the thread alive but do nothing
       while (running_) {
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
@@ -103,13 +103,12 @@ void Graphics::stop() {
   }
 }
 
-bool Graphics::isRunning() const {
-  return running_;
-}
+bool Graphics::isRunning() const { return running_; }
 
 void Graphics::processEvents() {
-  if (!window_) return;
- 
+  if (!window_)
+    return;
+
   sf::Event event;
   while (window_->pollEvent(event)) {
     if (event.type == sf::Event::Closed) {
@@ -127,9 +126,10 @@ void Graphics::update() {
 }
 
 void Graphics::render() {
-  if (!window_ || !window_->isOpen()) return;
- 
-  window_->clear(sf::Color(50, 50, 50));  // Dark gray background
+  if (!window_ || !window_->isOpen())
+    return;
+
+  window_->clear(sf::Color(50, 50, 50)); // Dark gray background
 
   if (gameState_->isConnected()) {
     renderMap();
@@ -142,9 +142,9 @@ void Graphics::render() {
     text.setString("Connecting to server...");
     text.setCharacterSize(24);
     text.setFillColor(sf::Color::White);
-    text.setPosition(
-        window_->getSize().x / 2 - text.getLocalBounds().width / 2,
-        window_->getSize().y / 2 - text.getLocalBounds().height / 2);
+    text.setPosition(window_->getSize().x / 2 - text.getLocalBounds().width / 2,
+                     window_->getSize().y / 2 -
+                         text.getLocalBounds().height / 2);
     window_->draw(text);
   }
 
@@ -156,8 +156,9 @@ void Graphics::render() {
 }
 
 void Graphics::renderMap() {
-  if (!window_) return;
- 
+  if (!window_)
+    return;
+
   auto mapData = gameState_->getMapData();
   auto [width, height] = gameState_->getMapDimensions();
 
@@ -180,38 +181,40 @@ void Graphics::renderMap() {
   for (uint16_t y = 0; y < height; y++) {
     for (uint16_t x = 0; x < width; x++) {
       uint16_t index = y * width + x;
-      if (index >= mapData.size()) continue;
+      if (index >= mapData.size())
+        continue;
 
       uint8_t tileType = mapData[index];
       float posX = offsetX + x * TILE_SIZE;
       float posY = offsetY + y * TILE_SIZE;
 
       switch (tileType) {
-        case protocol::WALL:
-          wallShape_.setPosition(posX, posY);
-          window_->draw(wallShape_);
-          break;
+      case protocol::WALL:
+        wallShape_.setPosition(posX, posY);
+        window_->draw(wallShape_);
+        break;
 
-        case protocol::COIN:
-          coinShape_.setPosition(posX + TILE_SIZE / 2, posY + TILE_SIZE / 2);
-          window_->draw(coinShape_);
-          break;
+      case protocol::COIN:
+        coinShape_.setPosition(posX + TILE_SIZE / 2, posY + TILE_SIZE / 2);
+        window_->draw(coinShape_);
+        break;
 
-        case protocol::ELECTRIC:
-          electricShape_.setPosition(posX, posY);
-          window_->draw(electricShape_);
-          break;
+      case protocol::ELECTRIC:
+        electricShape_.setPosition(posX, posY);
+        window_->draw(electricShape_);
+        break;
 
-        default:  // EMPTY or unknown
-          break;
+      default: // EMPTY or unknown
+        break;
       }
     }
   }
 }
 
 void Graphics::renderPlayers() {
-  if (!window_) return;
- 
+  if (!window_)
+    return;
+
   auto players = gameState_->getPlayerStates();
   auto [width, height] = gameState_->getMapDimensions();
 
@@ -230,8 +233,9 @@ void Graphics::renderPlayers() {
   float offsetY = (viewHeight - mapHeight) / 2;
 
   // Render each player
-  for (const auto& player : players) {
-    if (player.alive == 0) continue;  // Skip dead players
+  for (const auto &player : players) {
+    if (player.alive == 0)
+      continue; // Skip dead players
 
     // Convert player coordinates to screen coordinates
     float screenX = offsetX + player.posX * TILE_SIZE / 100.0f;
@@ -241,7 +245,7 @@ void Graphics::renderPlayers() {
     if (player.id == gameState_->getAssignedId()) {
       playerShape_.setFillColor(sf::Color::Green);
     } else {
-      playerShape_.setFillColor(sf::Color(255, 128, 0));  // Orange
+      playerShape_.setFillColor(sf::Color(255, 128, 0)); // Orange
     }
 
     playerShape_.setPosition(screenX, screenY);
@@ -267,8 +271,9 @@ void Graphics::renderPlayers() {
 }
 
 void Graphics::renderUI() {
-  if (!window_) return;
- 
+  if (!window_)
+    return;
+
   // Render game status at the top of the screen
   sf::Text statusText;
   statusText.setFont(font_);
@@ -280,13 +285,13 @@ void Graphics::renderUI() {
     } else if (winnerId == gameState_->getAssignedId()) {
       statusText.setString("Game Over - You Win!");
     } else {
-      statusText.setString("Game Over - Player " +
-                          std::to_string(winnerId) + " Wins!");
+      statusText.setString("Game Over - Player " + std::to_string(winnerId) +
+                           " Wins!");
     }
     statusText.setFillColor(sf::Color::Yellow);
   } else if (gameState_->isGameRunning()) {
     statusText.setString("Game Running - Tick: " +
-                        std::to_string(gameState_->getCurrentTick()));
+                         std::to_string(gameState_->getCurrentTick()));
     statusText.setFillColor(sf::Color::White);
   } else {
     statusText.setString("Waiting for game to start...");
@@ -308,16 +313,19 @@ void Graphics::renderUI() {
 }
 
 void Graphics::renderDebugInfo() {
-  if (!window_) return;
- 
+  if (!window_)
+    return;
+
   sf::Text debugText;
   debugText.setFont(font_);
   std::stringstream ss;
 
   ss << "DEBUG INFO:" << std::endl
      << "Connected: " << (gameState_->isConnected() ? "Yes" : "No") << std::endl
-     << "Player ID: " << static_cast<int>(gameState_->getAssignedId()) << std::endl
-     << "Game Running: " << (gameState_->isGameRunning() ? "Yes" : "No") << std::endl
+     << "Player ID: " << static_cast<int>(gameState_->getAssignedId())
+     << std::endl
+     << "Game Running: " << (gameState_->isGameRunning() ? "Yes" : "No")
+     << std::endl
      << "Current Tick: " << gameState_->getCurrentTick() << std::endl
      << "Input Mask: 0x" << std::hex << std::setw(2) << std::setfill('0')
      << static_cast<int>(gameState_->getInputMask());
@@ -334,38 +342,38 @@ void Graphics::handleKeyPress(sf::Keyboard::Key key, bool isPressed) {
   uint8_t newMask = currentMask;
 
   switch (key) {
-    case sf::Keyboard::Left:
-      if (isPressed) {
-        newMask |= protocol::MOVE_LEFT;
-      } else {
-        newMask &= ~protocol::MOVE_LEFT;
-      }
-      break;
+  case sf::Keyboard::Left:
+    if (isPressed) {
+      newMask |= protocol::MOVE_LEFT;
+    } else {
+      newMask &= ~protocol::MOVE_LEFT;
+    }
+    break;
 
-    case sf::Keyboard::Right:
-      if (isPressed) {
-        newMask |= protocol::MOVE_RIGHT;
-      } else {
-        newMask &= ~protocol::MOVE_RIGHT;
-      }
-      break;
+  case sf::Keyboard::Right:
+    if (isPressed) {
+      newMask |= protocol::MOVE_RIGHT;
+    } else {
+      newMask &= ~protocol::MOVE_RIGHT;
+    }
+    break;
 
-    case sf::Keyboard::Space:
-      if (isPressed) {
-        newMask |= protocol::JETPACK;
-      } else {
-        newMask &= ~protocol::JETPACK;
-      }
-      break;
+  case sf::Keyboard::Space:
+    if (isPressed) {
+      newMask |= protocol::JETPACK;
+    } else {
+      newMask &= ~protocol::JETPACK;
+    }
+    break;
 
-    case sf::Keyboard::Escape:
-      if (window_) {
-        window_->close();
-      }
-      break;
+  case sf::Keyboard::Escape:
+    if (window_) {
+      window_->close();
+    }
+    break;
 
-    default:
-      return;
+  default:
+    return;
   }
 
   if (newMask != currentMask) {
@@ -373,5 +381,5 @@ void Graphics::handleKeyPress(sf::Keyboard::Key key, bool isPressed) {
   }
 }
 
-}  // namespace graphics
-}  // namespace jetpack
+} // namespace graphics
+} // namespace jetpack

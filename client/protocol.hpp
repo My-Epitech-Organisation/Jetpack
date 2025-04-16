@@ -41,9 +41,9 @@ enum InputMask : uint8_t {
 
 // Header structure (4 bytes)
 struct PacketHeader {
-  uint8_t magic;    // Always MAGIC_BYTE (0xAB)
-  uint8_t type;     // PacketType enum
-  uint16_t length;  // Total packet length including header (at least 4)
+  uint8_t magic;   // Always MAGIC_BYTE (0xAB)
+  uint8_t type;    // PacketType enum
+  uint16_t length; // Total packet length including header (at least 4)
 };
 
 // Player data as received in GAME_STATE
@@ -63,7 +63,7 @@ enum MapElement : uint8_t {
   ELECTRIC = 0x03
 };
 
-}  // namespace protocol
-}  // namespace jetpack
+} // namespace protocol
+} // namespace jetpack
 
-#endif  // CLIENT_PROTOCOL_HPP_
+#endif // CLIENT_PROTOCOL_HPP_
