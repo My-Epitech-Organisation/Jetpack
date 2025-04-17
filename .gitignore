@@ -6,6 +6,8 @@ jetpack_client
 jetpack_server
 subject.md
 .cache
+.vscode
+*.log
 
 # Prerequisites
 *.d
