@@ -10,7 +10,7 @@
 void send_welcome(int client_fd, uint8_t assigned_id)
 {
     uint8_t buffer[4 + 2];
-    uint16_t length = 4 + 2;  // Raw length, not converted to network byte order
+    uint16_t length = 4 + 2;
     ssize_t bytes_sent;
 
     write_header(buffer, SERVER_WELCOME, length);
