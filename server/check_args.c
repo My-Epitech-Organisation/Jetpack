@@ -1,8 +1,8 @@
 /*
 ** EPITECH PROJECT, 2025
-** B-NWP-400-NAN-4-1-myftp-santiago.pidcova
+** Jetpack
 ** File description:
-** check_args
+** Command line argument validation
 */
 
 #include "includes/server.h"
@@ -44,7 +44,7 @@ bool check_path_map(char *map)
 
 int check_args(int argc, char **argv)
 {
-    if (argc < 5 && argc > 6)
+    if (argc < 5 || argc > 6)
         return 84;
     if (strcmp(argv[1], "-p") != 0 || strcmp(argv[3], "-m") != 0)
         return 84;

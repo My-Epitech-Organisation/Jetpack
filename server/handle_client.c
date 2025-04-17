@@ -1,8 +1,8 @@
 /*
 ** EPITECH PROJECT, 2025
-** B-NWP-400-NAN-4-1-myftp-santiago.pidcova
+** Jetpack
 ** File description:
-** handle_client
+** Client connection handling
 */
 
 #include "includes/server.h"

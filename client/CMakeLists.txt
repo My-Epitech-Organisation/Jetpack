@@ -4,6 +4,11 @@ project(JetpackClient CXX)
 set(CMAKE_CXX_STANDARD 17)  # Définit le standard C++
 set(CMAKE_CXX_FLAGS "-Wall -Wextra -Werror")
 
+# Set clang as the default compiler if not specified otherwise
+if(NOT CMAKE_CXX_COMPILER)
+  set(CMAKE_CXX_COMPILER "clang++")
+endif()
+
 # Recherche la bibliothèque SFML
 find_package(SFML 2.5 COMPONENTS graphics window system REQUIRED)
 
@@ -13,6 +18,8 @@ add_executable(jetpack_client
     gamestate.cpp
     graphics/graphics.cpp
     network/network.cpp
+    network/protocol_handlers.cpp
+    debug/debug.cpp
 )
 
 # Inclut les répertoires

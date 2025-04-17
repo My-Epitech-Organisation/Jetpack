@@ -1,8 +1,8 @@
 /*
 ** EPITECH PROJECT, 2025
-** B-NWP-400-NAN-4-1-myftp-santiago.pidcova
+** Jetpack
 ** File description:
-** main
+** Server entry point
 */
 
 #include "includes/server.h"

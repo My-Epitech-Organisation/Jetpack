@@ -1,551 +1,317 @@
-Jetpack Protocol (MJP)
+=============================================================================
+Internet Engineering Task Force (IETF)                             JETPACK
+Request for Comments: MJP                                         April 2025
+Category: Experimental
+ISSN: 0000‑0000
 
+                            Jetpack Protocol
+                                (MJP)
+=============================================================================
 
 Status of This Memo
 
-This memo presents an experimental specification for a binary protocol
-
-called "Jetpack Protocol" (MJP). It blends elements from two previous
-
-RFCs, aiming to provide a robust, modular, and easy-to-implement system
-
-for multiplayer Jetpack game communication.
-
-
-
-2. Introduction
-
-The goal of this protocol is to coordinate communication between a server
-
-(which holds authority over game logic) and one or more clients (which
-
-handle rendering and player controls). MJP relies on TCP and uses a unique
-
-header structure (including a Magic Byte, a Type, and a Length) followed
-
-by an appropriate payload.
-
-Key features include:
-
-
-- **Connection and identification**  (CLIENT_CONNECT / SERVER_WELCOME)
-
-- **Map transfer**  (MAP_CHUNK), possibly split into multiple chunks
-
-- **Game start notification**  (GAME_START)
-
-- **Client inputs**  (CLIENT_INPUT)
-
-- **Server updates**  (GAME_STATE) with a TICK field
-
-- **Game end**  (GAME_END)
-
-- **Explicit disconnection**  (CLIENT_DISCONNECT)
-
-- **Debug messages**  (DEBUG_INFO) for debugging mode (-d)
-
-
-
-
-2. General Format and Header
-
-
-2.1. Header Structure
-
-
-All messages share a 4-byte header:
-
-
-
-```pgsql
-0               1               2               3
-   +---------------+---------------+---------------+
-   | Magic (1B)    | Type (1B)     | Length (2B)   |
-   +---------------+---------------+---------------+
-   |     Payload (Length - 4 bytes)               |
-   +---------------------------------------------+
-```
-
-
-- **Magic (1B)** : A fixed byte (recommended 0xAB) to detect valid
-
-packets and help resynchronize if needed.
-
-- **Type (1B)** : Identifies the message (e.g., CLIENT_CONNECT, etc.).
-
-- **Length (2B, network order)** : Total size of the message, including
-
-the 4-byte header (minimum is 4).
-
-- **Payload** : Depends on the Type.
-
-If `Length` is less than 4 or if `Magic` differs from 0xAB, the
-
-implementation **MUST**  ignore the packet or close the connection based
-
-on its policy.
-
-2.2. Byte Order
-
-All multi-byte fields (Length, indices, dimensions, etc.) use network
-
-byte order**  (big-endian).
-
-
-
-2. Packet Types Enumeration
-
-
-Recommended (1-byte) packet Types:
-
-
-
-```pgsql
-+-----------+---------------------------------+
-   | Type (u8) | Name                            |
-   +-----------+---------------------------------+
-   | 0x01      | CLIENT_CONNECT                  |
-   | 0x02      | SERVER_WELCOME                  |
-   | 0x03      | MAP_CHUNK                       |
-   | 0x04      | GAME_START                      |
-   | 0x05      | CLIENT_INPUT                    |
-   | 0x06      | GAME_STATE                      |
-   | 0x07      | GAME_END                        |
-   | 0x08      | CLIENT_DISCONNECT               |
-   | 0x09      | DEBUG_INFO (optional)           |
-   +-----------+---------------------------------+
-```
-
-This list is extensible. Implementations can accept additional values for
-
-advanced features.
-
-
-
-2. Message Descriptions
-
-
-4.1. CLIENT_CONNECT (0x01) – Client → Server
-
-
-## Purpose
-
-A “hello”-like request to connect. The client proposes a Player ID (or 0)
-
-along with additional info.
-
-## Payload Format
-
-
-
-```pgsql
-0              1              2
-   +--------------+--------------+-------------------- ...
-   | ReqPlayerID  | NameLen      | ASCII Name[NameLen]
-   +--------------+--------------+-------------------- ...
-```
-
-
-- **ReqPlayerID (1B)** : Desired player ID (0 => let the server assign it).
-
-- **NameLen (1B)** : Length of the player name.
-
-- **ASCII Name[NameLen]** : Character string identifying the player (not
-
-necessarily null-terminated).
-
-
-Example: If NameLen=5 and the name is "Alice", the payload is 7 bytes total.
-
-
-4.2. SERVER_WELCOME (0x02) – Server → Client
-
-
-## Purpose
-
-Response to CLIENT_CONNECT. Sets an effective ID and indicates acceptance
-
-or refusal.
-
-## Payload Format
-
-
-
-```lua
-0              1              2
-   +--------------+--------------+-------------- ...
-   | AcceptCode   | AssignedID   | Option(s)...
-   +--------------+--------------+-------------- ...
-```
-
-
-- **AcceptCode (1B)** : 1 = accepted, 0 = refused.
-
-- **AssignedID (1B)** : Final ID assigned to the client.
-
-- **Option(s)** : May include version fields, maxPlayers, etc. (variable).
-
-If `AcceptCode=0`, the server **MUST**  close the connection immediately
-
-afterward.
-
-4.3. MAP_CHUNK (0x03) – Server → Client
-
-
-## Purpose
-
-Allows the server to transmit the map (or similar data) in one or
-
-multiple blocks, which is helpful for large maps.
-
-## Payload Format
-
-
-
-```lua
-0      1      2      3      4               5
-   +------+------+------+------+---------------+------ ...
-   | ChunkIndex(2B) | ChunkCount(2B) | ChunkData[...]
-   +------+------+------+------+---------------+------ ...
-```
-
-
-- **ChunkIndex (2B)** : The chunk index (0, 1, 2, …).
-
-- **ChunkCount (2B)** : Total number of chunks needed for the entire map.
-
-- **ChunkData** : A slice of the map (binary or ASCII).
-
-Multiple chunks offer flexible transmission. For a small map, one chunk
-
-(Index=0, Count=1) is sufficient.
-
-4.4. GAME_START (0x04) – Server → Client
-
-
-## Purpose
-
-Announces the actual game start, after all required players are connected
-
-and have received the map.
-
-## Payload Format (example)
-
-
-
-```lua
-0              1      2      3      4
-   +--------------+------+------+------+ ...
-   | PlayerCount  | StartX(2B) | StartY(2B) | ...
-```
-
-
-- **PlayerCount (1B)** : Number of players in the match.
-
-- **StartX, StartY (2B each)** : Suggested initial positions.
-
-- Additional fields may include default speed, gravity, etc.
-
-
-After receiving GAME_START, the client should begin sending inputs.
-
-
-4.5. CLIENT_INPUT (0x05) – Client → Server
-
-
-## Purpose
-
-
-Transmits a player's actions (left/right, jetpack on/off, etc.).
-
-
-## Payload Format
-
-
-
-```less
-0      1      2
-   +------+------+--------------- ...
-   |PID   |Mask  | (Optional: SequenceNumber(2B), etc.)
-   +------+------+--------------- ...
-```
-
-
-- **PID (1B)** : The player ID assigned by the server.
-
-- **Mask (1B)** : Bitfield for actions:
-
-  - bit 0: move left
-
-  - bit 1: move right
-
-  - bit 2: jetpack (1=on, 0=off)
-
-  - bits 3..7: reserved
-
-- **(Optional) SequenceNumber(2B)**  for more precise tracking (not
-
-mandatory).
-
-
-4.6. GAME_STATE (0x06) – Server → Client
-
-
-## Purpose
-
-Transmits the game state (positions, scores, etc.) as computed by the
-
-server. It keeps the client aligned with server truth.
-
-## Payload Format (example)
-
-
-
-```lua
-0      1      2      3      4      5
-   +------+------+------+------+------+------
-   | TICK (4B)           | NumPlayers(1B) | Data[] ...
-   +------+------+------+------+------+------
-```
-
-
-- **TICK (4B)** : Server-side iteration or frame counter.
-
-- **NumPlayers (1B)** : Number of players described in this state.
-
-- **Data[]** : For each player:
-
-  - PlayerID (1B)
-
-  - PosX (2B), PosY (2B)
-
-  - Score (2B)
-
-  - AliveFlag (1B)
-
-  - (more fields if needed)
-
-Exact size depends on the number of players and info included. The client
-
-should update its display immediately after receiving it.
-
-4.7. GAME_END (0x07) – Server → Client
-
-
-## Purpose
-
-
-Indicates the end of the game and provides winner info, if any.
-
-
-## Payload Format
-
-
-
-```lua
-0      1      2      3
-   +------+------+------+------ ...
-   |Reason|Winner| Scores...
-   +------+------+------+------ ...
-```
-
-
-- **Reason (1B)** : Code for the end (1=Map finished, 2=Death, 3=Disconnect,
-
-etc.).
-
-- **Winner (1B)** : The winning player ID, or 0xFF if none.
-
-- **Scores** : E.g., 2B per player, etc.
-
-After this packet, the client can close the connection or return to a
-
-menu.
-
-4.8. CLIENT_DISCONNECT (0x08) – Client → Server (or Server → Client)
-
-
-## Purpose
-
-
-Informs the remote side of a clean disconnection intent.
-
-
-## Payload Format
-
-
-- No payload (Length=4)
-
-
-As soon as this is received, the remote side may release resources.
-
-
-4.9. DEBUG_INFO (0x09) – Optional, bidirectional
-
-
-## Purpose
-
-Sends debugging messages if the `-d` mode is enabled. May contain text
-
-or other exploitable data.
-
-## Payload Format
-
-
-
-```lua
-0               1         ...
-   +---------------+---------+---------
-   | DebugLen(2B) | DebugData[DebugLen]
-   +---------------+---------+---------
-```
-
-
-- **DebugLen (2B)** : Size of DebugData.
-
-- **DebugData** : For instance, ASCII logs, debug strings, etc.
-
-
-
-
-2. General Flow
-
-
-
-
-2. **TCP Connection** :
-
-  - The client connects to the server on the specified port.
-
-4. **CLIENT_CONNECT / SERVER_WELCOME** :
-
-  - The client sends CLIENT_CONNECT (Type=0x01).
-
-  - The server replies with SERVER_WELCOME (0x02) to accept or refuse.
-
-6. **Map Transfer** :
-
-  - The server sends one or more MAP_CHUNK (0x03). If `ChunkCount`=N,
-
-the client must wait for chunk indices [0..N-1].
-
-8. **Game Launch** :
-
-  - The server sends GAME_START (0x04).
-
-10. **Gameplay Loop** :
-
-  - The client periodically sends CLIENT_INPUT (0x05).
-
-  - The server broadcasts GAME_STATE (0x06) with TICK, positions,
-
-scores, etc.
-
-  - (Optional) DEBUG_INFO (0x09) in debug mode.
-
-12. **End of Game** :
-
-  - The server sends GAME_END (0x07), including a Reason and a WinnerID.
-
-  - The client prepares to disconnect (CLIENT_DISCONNECT 0x08).
-
-14. **Connection Closure** :
-
-  - Either side can send CLIENT_DISCONNECT (0x08) or simply close
-
-the socket.
-
-
-
-
-2. Map Format and Reconstruction
-
-The protocol does not mandate a single format for **ChunkData**  in
-
-MAP_CHUNK. Possible approaches:
-
-- **ASCII format** : Each file line sent as part of a chunk.
-
-- **Binary format** : A header (width/height) followed by a byte array
-
-(0x00=empty, 0x01=wall, 0x02=coin, etc.).
-
-
-Example Implementation:
-
-
-- The server reads a .map file (first 4 bytes: width/height, then data).
-
-- It splits this data into chunks of ~512 bytes.
-
-- It sends each chunk with MAP_CHUNK(ChunkIndex, ChunkCount, chunkData).
-
-
-The client reconstructs locally:
-
-
-- Store chunkData[i] in a shared buffer.
-
-- Once all chunks arrive, the full map is available.
-
-
-
-
-2. Security and Validation
-
-
-
-
-2. **Server Validation** :
-
-  - The server handles collisions and scoring. Invalid inputs
-
-(teleport, etc.) are ignored.
-
-4. **Magic Byte** :
-
-  - Used to filter malformed packets.
-
-6. **Length vs. Payload** :
-
-  - Server/client must verify that `Length` matches the received size.
-
-Otherwise, discard or reject.
-
-8. **Disconnections** :
-
-  - Timeout may apply if no input is received.
-
-  - If a client repeatedly sends invalid data, the server may
-
-terminate the connection.
-
-10. **Encryption / TLS**  (optional):
-
-  - An optional security layer can be added if desired.
-
-
-
-
-2. Conclusion
-
-This "Jetpack Protocol" (MJP) maintains robustness (via Magic Byte, map
-
-chunking, etc.) while preserving a straightforward message schema
-
-(CLIENT_CONNECT, GAME_STATE with TICK, etc.). It offers:
-
-- **Flexibility**  (multi-chunk or single-chunk map).
-
-- **Simplicity**  (bitmask for INPUT, server-centered logic).
-
-- **Protection**  (Magic Byte, basic validations).
-
-- **Extensibility**  (extra Types, optional fields).
-
-Server and client implementations MUST follow this format to ensure
-
-maximum compatibility and ease of future expansions.
+   This memo defines an EXPERIMENTAL specification for a compact binary
+   protocol, the “Jetpack Protocol” (MJP), intended to coordinate
+   real‑time communication between a single authoritative game server and
+   one or more Jetpack game clients.  Distribution of this document is
+   unlimited.
+
+Copyright Notice
+
+   Copyright (c) 2025 IETF Trust and the persons identified as the
+   document authors.  All rights reserved.
 
 =============================================================================
-End of Jetpack Protocol RFC
+Table of Contents                                                    Page
+
+   1.  Introduction .................................................    2
+   2.  Message Frame and General Format .............................    3
+     2.1  Header Structure ..........................................    3
+     2.2  Byte Order ................................................    4
+   3.  Packet Type Enumeration ......................................    4
+   4.  Message Descriptions .........................................    5
+     4.1  CLIENT_CONNECT ............................................    5
+     4.2  SERVER_WELCOME ............................................    6
+     4.3  MAP_CHUNK .................................................    6
+     4.4  GAME_START ................................................    7
+     4.5  CLIENT_INPUT ..............................................    8
+     4.6  GAME_STATE ................................................    8
+     4.7  GAME_END ..................................................    9
+     4.8  CLIENT_DISCONNECT .........................................   10
+     4.9  DEBUG_INFO (Optional) .....................................   10
+   5.  Overall Flow ................................................  11
+   6.  Map Format and Reassembly ....................................  12
+   7.  Security Considerations ......................................  13
+   8.  Conclusion ...................................................  14
+   Acknowledgements .................................................  14
+   Authors' Addresses ...............................................  14
+
+=============================================================================
+1.  Introduction
+
+   The Jetpack Protocol (MJP) orchestrates game state synchronisation
+   between an authoritative server and multiple game clients for a
+   side‑scrolling arcade title inspired by “Jetpack Joyride”.  Built
+   atop TCP, MJP employs a fixed four‑byte header (Magic, Type, Length)
+   followed by a message‑specific payload.  The design goals are:
+
+   *   Robustness – simple validation via a magic byte and explicit
+       length field.
+   *   Modularity  – extensible packet types and optional feature blocks.
+   *   Low Latency – minimal framing overhead and compact binary fields.
+   *   Ease of Implementation – all integers are big‑endian, and the
+       header is uniform across messages.
+
+   Core features shipped in this specification include:
+
+   *   Client identification and welcome handshake.
+   *   Chunked map transfer from server to clients.
+   *   Explicit game start trigger after required players connect.
+   *   Bit‑mask input delivery from client to server.
+   *   Authoritative game‑state broadcasts (with server tick counter).
+   *   Deterministic game end and graceful disconnect.
+   *   Bidirectional debug messages when clients/servers run with ‑d.
+
+=============================================================================
+2.  Message Frame and General Format
+
+2.1.  Header Structure
+
+   Every packet begins with a 4‑byte header:
+
+     0               1               2               3
+     +---------------+---------------+---------------+
+     | Magic  (1 B)  | Type   (1 B)  | Length (2 B)  |
+     +---------------+---------------+---------------+
+     |            Payload (Length − 4 octets)        |
+     +-----------------------------------------------+
+
+   *  **Magic** – fixed value 0xAB.  A receiver MUST discard any packet
+      whose Magic byte differs, and MAY close the connection.
+   *  **Type**  – 1‑byte code identifying the message (see Section 3).
+   *  **Length** – total packet length in octets, header included.
+      Values < 4 are invalid.
+
+2.2.  Byte Order
+
+   All multi‑byte integer fields (e.g., Length, indices, coordinates) use
+   network byte order (big‑endian).
+
+=============================================================================
+3.  Packet Type Enumeration
+
+   Recommended baseline type codes:
+
+   +-----------+---------------------------+
+   | Type (u8) | Name                      |
+   +-----------+---------------------------+
+   | 0x01      | CLIENT_CONNECT            |
+   | 0x02      | SERVER_WELCOME            |
+   | 0x03      | MAP_CHUNK                 |
+   | 0x04      | GAME_START                |
+   | 0x05      | CLIENT_INPUT              |
+   | 0x06      | GAME_STATE                |
+   | 0x07      | GAME_END                  |
+   | 0x08      | CLIENT_DISCONNECT         |
+   | 0x09      | DEBUG_INFO (optional)     |
+   +-----------+---------------------------+
+
+   Higher values are reserved for future extensions.  Implementations
+   SHOULD ignore unknown packet types gracefully.
+
+=============================================================================
+4.  Message Descriptions
+
+4.1.  CLIENT_CONNECT (0x01) – Client → Server
+
+   Purpose:  Initiates a session and presents a preferred player ID.
+
+   Payload:
+
+     0               1               2
+     +---------------+---------------+-------------------- ...
+     | ReqID (1 B)   | NameLen (1 B) | Name ASCII [NameLen]
+     +---------------+---------------+-------------------- ...
+
+   *  **ReqID**   – desired player identifier (0 = let server choose).
+   *  **NameLen** – length of Name field in octets.
+   *  **Name**    – player nickname (ASCII, no NUL terminator).
+
+4.2.  SERVER_WELCOME (0x02) – Server → Client
+
+   Purpose:  Accepts or rejects a CLIENT_CONNECT and supplies the
+   definitive player ID.
+
+   Payload:
+
+     0               1               2
+     +---------------+---------------+-------------- ...
+     | Accept (1 B)  | AssignedID(1B)| Optional data...
+     +---------------+---------------+-------------- ...
+
+   *  **Accept**   – 1 = accepted ; 0 = rejected (connection closes).
+   *  **AssignedID** – final ID for this client.
+   *  **Optional** – protocol version, max players, etc.
+
+4.3.  MAP_CHUNK (0x03) – Server → Client
+
+   Purpose:  Sends the level map in one or more fragments.
+
+   Payload:
+
+     0           1           2           3           4
+     +-----------+-----------+-----------+-----------+----------...
+     | ChunkIdx (2 B) | ChunkCnt (2 B) |   ChunkData [...]
+     +-----------+-----------+-----------+-----------+----------...
+
+   *  **ChunkIdx**  – zero‑based fragment index.
+   *  **ChunkCnt**  – total number of fragments.
+   *  **ChunkData** – raw slice of map bytes.
+
+   The client assembles the full map after receiving all fragments
+   [0 .. ChunkCnt‑1].
+
+4.4.  GAME_START (0x04) – Server → Client
+
+   Purpose:  Announces the official start of gameplay.
+
+   Payload (example):
+
+     0               1       2       3       4
+     +---------------+-------+-------+-------+ ...
+     | PlayerCnt(1B) | StartX(2B) | StartY(2B) | ...
+     +---------------+-------+-------+-------+ ...
+
+   *  **PlayerCnt** – total players in this match.
+   *  **StartX/Y**  – recommended spawn coordinates.
+
+4.5.  CLIENT_INPUT (0x05) – Client → Server
+
+   Purpose:  Transfers current player actions.
+
+   Payload:
+
+     0       1       2
+     +-------+-------+---------------- ...
+     | ID(1B)| Mask(1B)| (opt. SeqNo 2B)
+     +-------+-------+---------------- ...
+
+   **Mask** bits (bit 0 = LSB):
+
+     0  Move Left     1  Move Right     2  Jetpack On
+     3‑7  Reserved
+
+4.6.  GAME_STATE (0x06) – Server → Client
+
+   Purpose:  Broadcasts authoritative positions, scores, and life states.
+
+   Payload (example):
+
+     0       1       2       3       4
+     +-------+-------+-------+-------+-------------...
+     |   TICK (4 B)  | NumP(1B) | Repeated Player Data [...]
+     +-------+-------+-------+-------+-------------...
+
+   Per‑player block:
+
+     ID(1B) PosX(2B) PosY(2B) Score(2B) Alive(1B)
+
+4.7.  GAME_END (0x07) – Server → Client
+
+   Purpose:  Terminates the match and reports the outcome.
+
+   Payload:
+
+     0       1       2
+     +-------+-------+---------------- ...
+     |Reason(1B)|WinnerID(1B)| Score data...
+     +-------+-------+---------------- ...
+
+   *  **Reason** codes: 1 = Map complete; 2 = Death; 3 = Disconnect; etc.
+   *  **WinnerID**: victorious player ID, or 0xFF for draw.
+
+4.8.  CLIENT_DISCONNECT (0x08) – Either Direction
+
+   Purpose:  Graceful teardown notification.
+
+   Payload: none (Length = 4).
+
+4.9.  DEBUG_INFO (0x09) – Optional, Bidirectional
+
+   Purpose:  Carries arbitrary debug text when the application is run
+   with the ‑d flag.
+
+   Payload:
+
+     0           1
+     +-----------+-----------+----------...
+     | Len (2 B) | DebugData[Len]
+     +-----------+-----------+----------...
+
+=============================================================================
+5.  Overall Flow
+
+   1.  **TCP Connect**           – client opens a stream to server.
+   2.  **CLIENT_CONNECT**        – client proposes an ID and name.
+   3.  **SERVER_WELCOME**        – server accepts or refuses; assigns ID.
+   4.  **MAP_CHUNK**×N          – server streams the level map.
+   5.  **GAME_START**            – server signals game commencement.
+   6.  **Gameplay Loop**:
+       • client ⇢ CLIENT_INPUT   – at fixed or event‑driven rate.
+       • server ⇢ GAME_STATE     – each simulation tick.
+       • optional DEBUG_INFO.
+   7.  **GAME_END**              – server declares winner / reason.
+   8.  **CLIENT_DISCONNECT**     – either side ends the session.
+
+=============================================================================
+6.  Map Format and Reassembly
+
+   MJP does not prescribe a single map encoding for **ChunkData**.  Two
+   commonly implemented schemes are:
+
+   * **ASCII** – each line of symbols ('.', '#', 'C', etc.) stored as a
+     chunk.
+   * **Binary** – width (2 B) + height (2 B) followed by tile bytes
+     (0 = empty, 1 = wall, 2 = coin, 3 = hazard).
+
+   Servers typically split the on‑disk representation into ≈512‑byte
+   fragments, populate ChunkCnt accordingly, and transmit sequentially.
+   Clients buffer fragments until all indices are present, then build
+   the in‑memory level.
+
+=============================================================================
+7.  Security Considerations
+
+   * **Authoritative Server** – all collision detection, scoring, and
+     death logic occur on the server.  Suspicious inputs (e.g., extreme
+     coordinates) are ignored.
+   * **Validation** – receivers MUST verify Magic and Length fields
+     before processing a packet.
+   * **Timeouts** – inactivity timers and rate limiting protect against
+     stale or malicious clients.
+   * **Transport Security** – MJP may be encapsulated in TLS to mitigate
+     sniffing or tampering, though this is outside the present scope.
+
+=============================================================================
+8.  Conclusion
+
+   The Jetpack Protocol combines a minimal fixed header, well‑defined
+   packet types, and optional extensions to deliver a clear, efficient,
+   and extensible foundation for two‑player Jetpack gameplay.  Adherence
+   to this RFC enables cross‑team interoperability and facilitates
+   future evolution.
+
+=============================================================================
+Acknowledgements
+
+   The authors thank the Jetpack project contributors for feedback and
+   testing assistance.
+
+Authors' Addresses
+
+   Jetpack Networking Working Group
+   <jetpack_santi_péa@void.never>
+
+=============================================================================
+End of Jetpack Protocol (MJP) RFC
+=============================================================================

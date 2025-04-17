@@ -1,7 +1,7 @@
 // Copyright 2025 paul-antoine.salmon@epitech.eu
 /*
 ** EPITECH PROJECT, 2025
-** B-NWP-400-NAN-4-1-jetpack-santiago.pidcova
+** Jetpack
 ** File description:
 ** Implementation of thread-safe game state
 */
@@ -10,18 +10,14 @@
 
 namespace jetpack {
 
-void GameState::setConnected(bool status) {
-  connected = status;
-}
+void GameState::setConnected(bool status) { connected = status; }
 
 void GameState::setAssignedId(uint8_t id) {
   std::lock_guard<std::mutex> lock(mutex_);
   assignedId = id;
 }
 
-void GameState::setGameRunning(bool running) {
-  gameRunning = running;
-}
+void GameState::setGameRunning(bool running) { gameRunning = running; }
 
 void GameState::setInputMask(uint8_t mask) {
   std::lock_guard<std::mutex> lock(mutex_);
@@ -35,13 +31,13 @@ void GameState::setMapDimensions(uint16_t width, uint16_t height) {
   mapData.resize(width * height, protocol::EMPTY);
 }
 
-void GameState::addMapChunk(const std::vector<uint8_t>& chunkData) {
+void GameState::addMapChunk(const std::vector<uint8_t> &chunkData) {
   std::lock_guard<std::mutex> lock(mutex_);
   mapData.insert(mapData.end(), chunkData.begin(), chunkData.end());
 }
 
 void GameState::setPlayerStates(
-    const std::vector<protocol::PlayerState>& states) {
+    const std::vector<protocol::PlayerState> &states) {
   std::lock_guard<std::mutex> lock(mutex_);
   playerStates = states;
 }
@@ -57,18 +53,14 @@ void GameState::setGameEnded(bool ended, uint8_t winId) {
   winnerId = winId;
 }
 
-bool GameState::isConnected() const {
-  return connected;
-}
+bool GameState::isConnected() const { return connected; }
 
 uint8_t GameState::getAssignedId() const {
   std::lock_guard<std::mutex> lock(mutex_);
   return assignedId;
 }
 
-bool GameState::isGameRunning() const {
-  return gameRunning;
-}
+bool GameState::isGameRunning() const { return gameRunning; }
 
 uint8_t GameState::getInputMask() const {
   std::lock_guard<std::mutex> lock(mutex_);
@@ -105,4 +97,4 @@ uint8_t GameState::getWinnerId() const {
   return winnerId;
 }
 
-}  // namespace jetpack
+} // namespace jetpack

@@ -1,7 +1,7 @@
 // Copyright 2025 paul-antoine.salmon@epitech.eu
 /*
 ** EPITECH PROJECT, 2025
-** B-NWP-400-NAN-4-1-jetpack-santiago.pidcova
+** Jetpack
 ** File description:
 ** Protocol definitions for Jetpack client
 */
@@ -10,8 +10,6 @@
 #define CLIENT_PROTOCOL_HPP_
 
 #include <cstdint>
-#include <string>
-#include <vector>
 
 namespace jetpack {
 namespace protocol {
@@ -19,31 +17,39 @@ namespace protocol {
 // Protocol constants
 constexpr uint8_t MAGIC_BYTE = 0xAB;
 
-// Packet types
+// Packet types (as defined in RFC)
 enum PacketType : uint8_t {
-  CLIENT_CONNECT = 0x01,
-  SERVER_WELCOME = 0x02,
-  MAP_CHUNK = 0x03,
-  GAME_START = 0x04,
-  CLIENT_INPUT = 0x05,
-  GAME_STATE = 0x06,
-  GAME_END = 0x07,
-  CLIENT_DISCONNECT = 0x08,
-  DEBUG_INFO = 0x09
+  CLIENT_CONNECT = 0x01,    // Client -> Server: Connect request
+  SERVER_WELCOME = 0x02,    // Server -> Client: Connection accepted/rejected
+  MAP_CHUNK = 0x03,         // Server -> Client: Map data fragment
+  GAME_START = 0x04,        // Server -> Client: Game start signal
+  CLIENT_INPUT = 0x05,      // Client -> Server: Input state
+  GAME_STATE = 0x06,        // Server -> Client: Game state update
+  GAME_END = 0x07,          // Server -> Client: Game over
+  CLIENT_DISCONNECT = 0x08, // Both ways: Graceful disconnect
+  DEBUG_INFO = 0x09         // Both ways: Debug text messages
 };
 
-// Input mask bits
+// Game end reason codes
+enum GameEndReason : uint8_t {
+  MAP_COMPLETE = 0x01,
+  PLAYER_DIED = 0x02,
+  PLAYER_DISCONNECT = 0x03
+};
+
+// Input mask bits (according to RFC)
 enum InputMask : uint8_t {
-  MOVE_LEFT = 0x01,
-  MOVE_RIGHT = 0x02,
-  JETPACK = 0x04
+  MOVE_LEFT = 0x01,  // bit 0
+  MOVE_RIGHT = 0x02, // bit 1
+  JETPACK = 0x04     // bit 2
+  // bits 3-7 reserved
 };
 
 // Header structure (4 bytes)
 struct PacketHeader {
-  uint8_t magic;    // Always MAGIC_BYTE (0xAB)
-  uint8_t type;     // PacketType enum
-  uint16_t length;  // Total packet length including header (at least 4)
+  uint8_t magic;   // Always MAGIC_BYTE (0xAB)
+  uint8_t type;    // PacketType enum
+  uint16_t length; // Total packet length including header (at least 4)
 };
 
 // Player data as received in GAME_STATE
@@ -63,7 +69,10 @@ enum MapElement : uint8_t {
   ELECTRIC = 0x03
 };
 
-}  // namespace protocol
-}  // namespace jetpack
+// Special values
+constexpr uint8_t NO_WINNER = 0xFF; // Used in GAME_END when there's a draw
 
-#endif  // CLIENT_PROTOCOL_HPP_
+} // namespace protocol
+} // namespace jetpack
+
+#endif // CLIENT_PROTOCOL_HPP_
