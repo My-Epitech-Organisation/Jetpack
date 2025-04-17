@@ -1,10 +1,4 @@
 // Copyright 2025 paul-antoine.salmon@epitech.eu
-/*
-** EPITECH PROJECT, 2025
-** B-NWP-400-NAN-4-1-jetpack-santiago.pidcova
-** File description:
-** Graphics class for Jetpack client
-*/
 
 #ifndef CLIENT_GRAPHICS_GRAPHICS_HPP_
 #define CLIENT_GRAPHICS_GRAPHICS_HPP_
@@ -12,6 +6,7 @@
 #include "../gamestate.hpp"
 #include <SFML/Graphics.hpp>
 #include <atomic>
+#include <functional>
 #include <memory>
 #include <thread>
 
@@ -27,6 +22,9 @@ public:
   void stop();
   bool isRunning() const;
 
+  // Function to set callback for window closing event
+  void setOnWindowClosedCallback(std::function<void()> callback);
+
 private:
   // Window and game state
   std::unique_ptr<sf::RenderWindow> window_;
@@ -35,6 +33,9 @@ private:
   std::atomic<bool> running_;
   std::atomic<bool> graphicsInitialized_;
   std::thread graphicsThread_;
+
+  // Callback called when window is closed
+  std::function<void()> onWindowClosedCallback_;
 
   // SFML objects
   sf::Font font_;

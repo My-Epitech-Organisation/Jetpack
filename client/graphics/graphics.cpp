@@ -1,22 +1,28 @@
 // Copyright 2025 paul-antoine.salmon@epitech.eu
 /*
 ** EPITECH PROJECT, 2025
-** B-NWP-400-NAN-4-1-jetpack-santiago.pidcova
+** Jetpack
 ** File description:
 ** Graphics implementation for Jetpack client
 */
 
 #include "graphics.hpp"
+#include "../debug/debug.hpp"
+#include <SFML/Graphics.hpp>
+#include <atomic>
 #include <iomanip>
 #include <iostream>
+#include <memory>
 #include <sstream>
+#include <thread>
 
 namespace jetpack {
 namespace graphics {
 
 Graphics::Graphics(GameState *gameState, bool debugMode)
     : window_(nullptr), gameState_(gameState), debugMode_(debugMode),
-      running_(false), graphicsInitialized_(false) {
+      running_(false), graphicsInitialized_(false),
+      onWindowClosedCallback_(nullptr) {
   // Defer window creation to the run() method
 }
 
@@ -35,32 +41,34 @@ bool Graphics::initializeWindow() {
 }
 
 bool Graphics::initializeResources() {
-  // Initialize player shape (green circle)
+  // Load font
+  if (!font_.loadFromFile("assets/jetpack_font.ttf")) {
+    try {
+      if (!font_.loadFromFile("/usr/share/fonts/truetype/liberation/"
+                              "LiberationSans-Regular.ttf")) {
+        std::cerr << "Failed to load fallback font" << std::endl;
+        return false;
+      }
+    } catch (const std::exception &e) {
+      std::cerr << "Error loading fallback font: " << e.what() << std::endl;
+      return false;
+    }
+  }
+
+  // Initialize shapes
   playerShape_.setRadius(PLAYER_RADIUS);
   playerShape_.setFillColor(sf::Color::Green);
   playerShape_.setOrigin(PLAYER_RADIUS, PLAYER_RADIUS);
 
-  // Initialize wall shape (red square)
   wallShape_.setSize(sf::Vector2f(TILE_SIZE, TILE_SIZE));
-  wallShape_.setFillColor(sf::Color::Red);
+  wallShape_.setFillColor(sf::Color(128, 128, 128)); // Gray
 
-  // Initialize coin shape (yellow circle)
   coinShape_.setRadius(COIN_RADIUS);
   coinShape_.setFillColor(sf::Color::Yellow);
   coinShape_.setOrigin(COIN_RADIUS, COIN_RADIUS);
 
-  // Initialize electric shape (blue rectangle)
   electricShape_.setSize(sf::Vector2f(TILE_SIZE, TILE_SIZE));
-  electricShape_.setFillColor(sf::Color::Blue);
-
-  // Load font - don't fail if this doesn't work
-  try {
-    if (!font_.loadFromFile("assets/jetpack_font.ttf")) {
-      std::cerr << "Failed to load font, using system default" << std::endl;
-    }
-  } catch (const std::exception &e) {
-    std::cerr << "Font loading error: " << e.what() << std::endl;
-  }
+  electricShape_.setFillColor(sf::Color(255, 0, 255)); // Purple
 
   return true;
 }
@@ -80,6 +88,14 @@ void Graphics::run() {
         processEvents();
         update();
         render();
+      }
+
+      // If the window was manually closed and a callback is defined, execute it
+      if (!window_->isOpen() && onWindowClosedCallback_) {
+        debug::print("Graphics",
+                     "Window was closed, calling window closed callback",
+                     debugMode_);
+        onWindowClosedCallback_();
       }
     } else {
       std::cerr << "Graphics initialization failed - running in headless mode"
@@ -105,6 +121,10 @@ void Graphics::stop() {
 
 bool Graphics::isRunning() const { return running_; }
 
+void Graphics::setOnWindowClosedCallback(std::function<void()> callback) {
+  onWindowClosedCallback_ = callback;
+}
+
 void Graphics::processEvents() {
   if (!window_)
     return;
@@ -112,7 +132,13 @@ void Graphics::processEvents() {
   sf::Event event;
   while (window_->pollEvent(event)) {
     if (event.type == sf::Event::Closed) {
+      debug::print("Graphics", "Window closed event received", debugMode_);
       window_->close();
+      running_ = false;
+      // Call callback if defined
+      if (onWindowClosedCallback_) {
+        onWindowClosedCallback_();
+      }
     } else if (event.type == sf::Event::KeyPressed) {
       handleKeyPress(event.key.code, true);
     } else if (event.type == sf::Event::KeyReleased) {
