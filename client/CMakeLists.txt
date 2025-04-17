@@ -18,6 +18,8 @@ add_executable(jetpack_client
     gamestate.cpp
     graphics/graphics.cpp
     network/network.cpp
+    network/protocol_handlers.cpp
+    debug/debug.cpp
 )
 
 # Inclut les répertoires
