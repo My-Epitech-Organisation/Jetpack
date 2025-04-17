@@ -226,27 +226,25 @@ void ProtocolHandlers::processCompleteMap() {
              " bytes");
 
   // Determine map format (based on RFC section 6)
-  // First, check if the data might be in binary format with width/height at the
-  // beginning
+  // First, check if the data might be in binary format with width/height at the beginning
   if (completeMapData.size() >= 4) {
     // Try to extract width and height from the first 4 bytes
     uint16_t width = (completeMapData[0] << 8) | completeMapData[1];
     uint16_t height = (completeMapData[2] << 8) | completeMapData[3];
-
+    
     // Check if dimensions make sense (more data follows after width/height)
-    if (completeMapData.size() >= 4 + (width * height)) {
-      debugPrint("Binary map format detected: " + std::to_string(width) + "x" +
-                 std::to_string(height));
-
+    if (completeMapData.size() >= static_cast<size_t>(4) + static_cast<size_t>(width) * static_cast<size_t>(height)) {
+      debugPrint("Binary map format detected: " + std::to_string(width) + "x" + 
+                std::to_string(height));
+      
       // Set dimensions and store map data (excluding the 4-byte header)
       gameState_->setMapDimensions(width, height);
-
+      
       // Add only the map tile data (skip the dimensions)
-      std::vector<uint8_t> mapTiles(completeMapData.begin() + 4,
-                                    completeMapData.begin() + 4 +
-                                        (width * height));
+      std::vector<uint8_t> mapTiles(completeMapData.begin() + 4, 
+                                   completeMapData.begin() + 4 + (width * height));
       gameState_->addMapChunk(mapTiles);
-
+      
       mapComplete = true;
       return;
     }
@@ -338,16 +336,33 @@ void ProtocolHandlers::processCompleteMap() {
     }
   }
 
-  // If we can't determine the format, make a simple guess based on the data
+  // If we can't determine the format, use known constraints:
+  // We know the map is 10 rows high
+  const uint16_t KNOWN_MAP_HEIGHT = 10;
+  uint16_t width = static_cast<uint16_t>(completeMapData.size() / KNOWN_MAP_HEIGHT);
+  
+  // If width calculation makes sense (divides evenly)
+  if (completeMapData.size() % KNOWN_MAP_HEIGHT == 0) {
+    debugPrint("Using known map height constraint: " + std::to_string(width) + "x" + 
+               std::to_string(KNOWN_MAP_HEIGHT));
+    
+    gameState_->setMapDimensions(width, KNOWN_MAP_HEIGHT);
+    gameState_->addMapChunk(completeMapData);
+    
+    mapComplete = true;
+    return;
+  }
+  
+  // Fallback to best guess if known height doesn't work
   // Assume it's a square or reasonable rectangle
   uint16_t size = static_cast<uint16_t>(std::sqrt(completeMapData.size()));
-  uint16_t width = size;
+  width = size;
   uint16_t height = size;
 
   // Try to find more suitable dimensions if not a perfect square
   if (width * height != completeMapData.size()) {
     // Look for a reasonable width that divides the total size
-    for (uint16_t w = 1; w <= completeMapData.size(); ++w) {
+    for (uint16_t w = 1; w <= static_cast<uint16_t>(completeMapData.size()); ++w) {
       if (completeMapData.size() % w == 0) {
         width = w;
         height = static_cast<uint16_t>(completeMapData.size() / w);
@@ -363,7 +378,7 @@ void ProtocolHandlers::processCompleteMap() {
 
   gameState_->setMapDimensions(width, height);
   gameState_->addMapChunk(completeMapData);
-
+  
   mapComplete = true;
 }
 
