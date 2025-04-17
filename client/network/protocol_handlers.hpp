@@ -36,8 +36,15 @@ private:
   GameState *gameState_;
   bool debugMode_;
 
+  // Temporary storage for map reconstruction
+  std::vector<std::vector<uint8_t>> mapChunks;
+  uint16_t expectedChunkCount;
+  uint16_t receivedChunkCount;
+  bool mapComplete;
+
   // Helper methods
   void debugPrint(const std::string &message);
+  void processCompleteMap();
 };
 
 } // namespace network
