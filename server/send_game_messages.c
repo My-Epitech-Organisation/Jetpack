@@ -10,7 +10,7 @@
 void send_game_start(server_t *server, int client_fd)
 {
     uint8_t buffer[9];
-    uint16_t length = 9;  // Raw length, not converted to network byte order
+    uint16_t length = 9;
     ssize_t bytes_sent;
 
     write_header(buffer, GAME_START, length);
