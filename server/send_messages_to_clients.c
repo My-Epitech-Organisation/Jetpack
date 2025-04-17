@@ -10,7 +10,7 @@
 void send_welcome(int client_fd, uint8_t assigned_id)
 {
     uint8_t buffer[4 + 2];
-    uint16_t length = htons(4 + 2);
+    uint16_t length = 4 + 2;  // Raw length, not converted to network byte order
     ssize_t bytes_sent;
 
     write_header(buffer, SERVER_WELCOME, length);
@@ -34,7 +34,7 @@ void send_map_chunk(server_t *server, int client_fd, uint8_t col_index)
     buffer = malloc(total_size);
     if (!buffer)
         handle_error("malloc");
-    write_header(buffer, MAP_CHUNK, htons(4 + server->map_rows));
+    write_header(buffer, MAP_CHUNK, 4 + 4 + server->map_rows);
     write_map_payload(buffer, col_index, (uint16_t)server->map_cols);
     for (size_t row = 0; row < server->map_rows; row++)
         buffer[8 + row] = server->map[row][col_index];
