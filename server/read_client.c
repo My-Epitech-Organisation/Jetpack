@@ -9,23 +9,23 @@
 
 void handle_message(server_t *server, int client_id, uint16_t length)
 {
-    printf("Client %d : message reçu (type: 0x%02X, longueur: %d)\n",
+    printf("Client %d: message received (type: 0x%02X, length: %d)\n",
         client_id, server->message_type, length - 4);
     switch (server->message_type) {
         case CLIENT_CONNECT:
-            printf("Client %d veut se connecter\n", client_id);
+            printf("Client %d is trying to connect\n", client_id);
             send_welcome(server->client[client_id]->fd, client_id);
             if (server->client_count == MAX_CLIENTS) {
-                printf("Tous les clients sont connectés, envoi de la carte\n");
+                printf("All clients connected, sending map\n");
                 launch_game(server);
             }
             break;
         case GAME_INPUT:
-            printf("Client %d envoie des inputs\n", client_id);
+            printf("Client %d sending inputs\n", client_id);
             handle_input(server, client_id, server->buffer, length);
             break;
         default:
-            printf("Message inconnu (type: 0x%02X) de client %d\n",
+            printf("Unknown message (type: 0x%02X) from client %d\n",
                 server->message_type, client_id);
             break;
     }

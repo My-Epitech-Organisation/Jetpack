@@ -1,8 +1,8 @@
 /*
 ** EPITECH PROJECT, 2025
-** B-NWP-400-NAN-4-1-myftp-santiago.pidcova
+** Jetpack
 ** File description:
-** error_handling
+** Error handling functions
 */
 
 #include "includes/server.h"

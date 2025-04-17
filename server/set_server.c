@@ -1,8 +1,8 @@
 /*
 ** EPITECH PROJECT, 2025
-** B-NWP-400-NAN-4-1-myftp-santiago.pidcova
+** Jetpack
 ** File description:
-** set_server
+** Server socket setup functions
 */
 
 #include "includes/server.h"
