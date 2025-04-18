@@ -42,6 +42,13 @@ normalize:
 	-exec $(CLANG_FORMAT) -i -style=llvm {} \;
 	@echo "Formatting complete!"
 
+debug: fclean
+	@mkdir -p $(BUILD_DIR)
+	@cd $(BUILD_DIR) && $(CMAKE) -DCMAKE_BUILD_TYPE=Debug .. && $(MAKE)
+	@cp $(BUILD_DIR)/client/$(CLIENT_BIN) ./
+	@cp $(BUILD_DIR)/server/$(SERVER_BIN) ./
+	@echo "Debug build complete!"
+
 clean:
 	@$(RM) $(BUILD_DIR)/*
 	@$(RM) $(CLIENT_BIN)
@@ -52,4 +59,4 @@ fclean: clean
 
 re: fclean all
 
-.PHONY: all clean fclean re tests_run normalize
+.PHONY: all clean fclean re tests_run normalize debug
