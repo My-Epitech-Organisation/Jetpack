@@ -328,9 +328,7 @@ void Graphics::renderDebugInfo() {
      << std::endl
      << "Game Running: " << (gameState_->isGameRunning() ? "Yes" : "No")
      << std::endl
-     << "Current Tick: " << gameState_->getCurrentTick() << std::endl
-     << "Input Mask: 0x" << std::hex << std::setw(2) << std::setfill('0')
-     << static_cast<int>(gameState_->getInputMask());
+     << "Current Tick: " << gameState_->getCurrentTick() << std::endl;
 
   debugText.setString(ss.str());
   debugText.setCharacterSize(12);
