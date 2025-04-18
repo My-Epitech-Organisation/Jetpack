@@ -28,6 +28,7 @@ bool check_header(unsigned char header[4], int i, server_t *server)
         close(server->client[i]->fd);
         return false;
     }
+    server->message_type = (uint8_t)header[1];
     return true;
 }
 

@@ -21,10 +21,8 @@ void server(int argc, char **argv)
 {
     server_t *server = malloc(sizeof(server_t));
 
-    if (server == NULL) {
-        perror("malloc");
-        exit(EXIT_FAILURE);
-    }
+    if (server == NULL)
+        handle_error("malloc");
     parsing_launch(argc, argv, server);
     server->fd = set_server_socket();
     server->client_count = 0;

@@ -11,7 +11,7 @@ void handle_message(server_t *server, int client_id, uint16_t length)
 {
     switch (server->message_type) {
         case CLIENT_CONNECT:
-            send_welcome(server->client[client_id]->fd, client_id, server);
+            send_welcome(server->client[client_id]->fd, client_id);
             if (server->client_count == MAX_CLIENTS)
                 launch_game(server);
             break;
