@@ -38,7 +38,8 @@ tests_run:
 
 normalize:
 	@echo "Applying clang format to all C++ files..."
-	@find ./client -type f \( -name "*.cpp" -o -name "*.hpp" \) -exec $(CLANG_FORMAT) -i -style=llvm {} \;
+	@find ./client -type f \( -name "*.cpp" -o -name "*.hpp" \) \
+	-exec $(CLANG_FORMAT) -i -style=llvm {} \;
 	@echo "Formatting complete!"
 
 clean:
