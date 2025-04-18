@@ -328,9 +328,7 @@ void Graphics::renderDebugInfo() {
      << std::endl
      << "Game Running: " << (gameState_->isGameRunning() ? "Yes" : "No")
      << std::endl
-     << "Current Tick: " << gameState_->getCurrentTick() << std::endl
-     << "Input Mask: 0x" << std::hex << std::setw(2) << std::setfill('0')
-     << static_cast<int>(gameState_->getInputMask());
+     << "Current Tick: " << gameState_->getCurrentTick() << std::endl;
 
   debugText.setString(ss.str());
   debugText.setCharacterSize(12);
@@ -340,32 +338,12 @@ void Graphics::renderDebugInfo() {
 }
 
 void Graphics::handleKeyPress(sf::Keyboard::Key key, bool isPressed) {
-  uint8_t currentMask = gameState_->getInputMask();
-  uint8_t newMask = currentMask;
+  bool jetpackCurrentlyActive = gameState_->isJetpackActive();
+  bool newJetpackState = jetpackCurrentlyActive;
 
   switch (key) {
-  case sf::Keyboard::Left:
-    if (isPressed) {
-      newMask |= protocol::MOVE_LEFT;
-    } else {
-      newMask &= ~protocol::MOVE_LEFT;
-    }
-    break;
-
-  case sf::Keyboard::Right:
-    if (isPressed) {
-      newMask |= protocol::MOVE_RIGHT;
-    } else {
-      newMask &= ~protocol::MOVE_RIGHT;
-    }
-    break;
-
   case sf::Keyboard::Space:
-    if (isPressed) {
-      newMask |= protocol::JETPACK;
-    } else {
-      newMask &= ~protocol::JETPACK;
-    }
+    newJetpackState = isPressed;
     break;
 
   case sf::Keyboard::Escape:
@@ -378,8 +356,8 @@ void Graphics::handleKeyPress(sf::Keyboard::Key key, bool isPressed) {
     return;
   }
 
-  if (newMask != currentMask) {
-    gameState_->setInputMask(newMask);
+  if (newJetpackState != jetpackCurrentlyActive) {
+    gameState_->setJetpackActive(newJetpackState);
   }
 }
 

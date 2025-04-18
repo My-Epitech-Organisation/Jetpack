@@ -37,12 +37,10 @@ enum GameEndReason : uint8_t {
   PLAYER_DISCONNECT = 0x03
 };
 
-// Input mask bits
-enum InputMask : uint8_t {
-  MOVE_LEFT = 0x01,  // bit 0
-  MOVE_RIGHT = 0x02, // bit 1
-  JETPACK = 0x04     // bit 2
-  // bits 3-7 reserved
+// Jetpack state values
+enum JetpackState : uint8_t {
+  JETPACK_OFF = 0x00,  // Falling
+  JETPACK_ON = 0x01    // Ascending
 };
 
 // Header structure (4 bytes)
