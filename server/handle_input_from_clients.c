@@ -7,22 +7,19 @@
 
 #include "includes/server.h"
 
-void handle_input(server_t *server, int client_id, char *payload, uint16_t len)
+void handle_input(server_t *server, int client_id, char *payload)
 {
-    uint8_t mask;
-    client_t *client;
-    bool left;
-    bool right;
-    bool jetpack;
+    uint8_t player_id;
+    uint8_t jetpack_status;
 
-    if (len < 2)
+    if (!payload || server->client[client_id] == NULL)
         return;
-    mask = payload[1];
-    left = mask & (1 << 0);
-    right = mask & (1 << 1);
-    jetpack = mask & (1 << 2);
-    client = server->client[client_id];
-    client->input_left = left;
-    client->input_right = right;
-    client->input_jetpack = jetpack;
+    player_id = payload[0];
+    jetpack_status = payload[1];
+    if (jetpack_status == 1)
+        server->client[player_id]->jetpack = true;
+    else if (jetpack_status == 0)
+        server->client[player_id]->jetpack = false;
+    else
+        fprintf(stderr, "Invalid jetpack status: %d\n", jetpack_status);
 }

@@ -11,11 +11,9 @@ client_t *set_values_to_client(client_t *new_client, server_t *server)
 {
     new_client->score = 0;
     new_client->is_alive = true;
-    new_client->x = server->start_x * 100;
-    new_client->y = server->start_y * 100;
-    new_client->input_left = false;
-    new_client->input_right = false;
-    new_client->input_jetpack = false;
+    new_client->x = server->start_x;
+    new_client->y = server->start_y;
+    new_client->jetpack = false;
     return new_client;
 }
 
@@ -24,7 +22,7 @@ void accept_client(server_t *server)
     client_t *new_client = malloc(sizeof(client_t));
 
     if (!new_client)
-        handle_error("malloc");
+        handle_error("malloc", server);
     memset(new_client, 0, sizeof(client_t));
     new_client->addr_len = sizeof(new_client->addr);
     new_client->fd = accept(server->fd, (struct sockaddr *) &new_client->addr,
@@ -79,7 +77,7 @@ void handle_clients(server_t *server)
     server->fds[0].events = POLLIN;
     while (1) {
         if (poll(server->fds, server->nfds, -1) == -1)
-            handle_error("poll");
+            handle_error("poll", server);
         for (int current_idx = 0; current_idx < server->nfds; current_idx++)
             loop_clients(server, current_idx);
     }
