@@ -13,7 +13,6 @@ void check_limits(client_t *client, server_t *server)
         client->x = server->map_cols * 100 - 1;
     if (client->x <= 0)
         client->x = 0;
-
     if (client->y >= server->map_rows * 100)
         client->y = server->map_rows * 100 - 1;
     if (client->y <= 0)

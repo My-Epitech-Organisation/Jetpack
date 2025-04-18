@@ -9,19 +9,13 @@
 
 void handle_message(server_t *server, int client_id, uint16_t length)
 {
-    printf("Client %d: message received (type: 0x%02X, length: %d)\n",
-        client_id, server->message_type, length - 4);
     switch (server->message_type) {
         case CLIENT_CONNECT:
-            printf("Client %d is trying to connect\n", client_id);
             send_welcome(server->client[client_id]->fd, client_id);
-            if (server->client_count == MAX_CLIENTS) {
-                printf("All clients connected, sending map\n");
+            if (server->client_count == MAX_CLIENTS)
                 launch_game(server);
-            }
             break;
         case GAME_INPUT:
-            printf("Client %d sending inputs\n", client_id);
             handle_input(server, client_id, server->buffer, length);
             break;
         default:
@@ -41,16 +35,16 @@ void read_client(server_t *server, int i)
     read_ret = read(server->client[i]->fd, header, 4);
     if (read_ret <= 0 || !check_header((unsigned char *)header, i, server))
         return;
-    server->message_type = (uint8_t)header[1];
     payload_length = ntohs(*(uint16_t *)(header + 2));
     if (check_payload_length(payload_length, server, i) == 84)
         return;
-    payload = (char *)malloc(payload_length - 4);
+    payload = malloc((payload_length - 4) * sizeof(char));
     if (!payload)
         handle_error("malloc");
     read_ret = read(server->client[i]->fd, payload, payload_length - 4);
     if (check_read(read_ret, payload_length, payload) == 84)
         return;
+    print_debug_all(server, "Server", payload, header);
     handle_message(server, i, payload_length - 4);
     free(payload);
 }

@@ -16,7 +16,9 @@ void send_welcome(int client_fd, uint8_t assigned_id)
     buffer[4] = 1;
     buffer[5] = assigned_id;
     if (!send_with_write(client_fd, buffer, sizeof(buffer)))
-        perror("send_with_write SERVER_WELCOME");
+        handle_error("send_with_write SERVER_WELCOME");
+    print_debug_info_package_sent("Server", get_type_string_prev(buffer[1]),
+        buffer, sizeof(buffer));
 }
 
 void send_map_chunk(server_t *server, int client_fd, uint8_t col_index)
@@ -35,7 +37,9 @@ void send_map_chunk(server_t *server, int client_fd, uint8_t col_index)
     for (size_t row = 0; row < server->map_rows; row++)
         buffer[8 + row] = server->map[row][col_index];
     if (!send_with_write(client_fd, buffer, total_size))
-        perror("send_with_write MAP_CHUNK");
+        handle_error("send_with_write MAP_CHUNK");
+    print_debug_info_package_sent("Server", get_type_string_prev(buffer[1]),
+        buffer, total_size);
     free(buffer);
 }
 
