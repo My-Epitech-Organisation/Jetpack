@@ -24,17 +24,14 @@ void update_game_state(server_t *server)
     client_t *client;
 
     for (int i = 0; i < server->client_count; i++) {
+        read_client(server, i);
         client = server->client[i];
         if (!client->is_alive)
             continue;
-        if (client->input_left)
-            client->x--;
-        if (client->input_right)
-            client->x++;
-        if (client->input_jetpack)
-            client->y--;
+        if (client->jetpack)
+            client->y -= 40;
         else
-            client->y++;
+            client->y += 50;
         check_limits(client, server);
     }
 }

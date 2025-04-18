@@ -307,7 +307,7 @@ void Graphics::renderUI() {
 
   sf::Text controlsText;
   controlsText.setFont(font_);
-  controlsText.setString("Controls: Left/Right Arrows, Space = Jetpack");
+  controlsText.setString("Controls: Space = Jetpack");
   controlsText.setCharacterSize(14);
   controlsText.setFillColor(sf::Color(200, 200, 200));
   controlsText.setPosition(10, window_->getSize().y - 25);
