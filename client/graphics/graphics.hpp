@@ -49,6 +49,7 @@ private:
   const float TILE_SIZE = 20.0f;
   const float PLAYER_RADIUS = 10.0f;
   const float COIN_RADIUS = 5.0f;
+  const float FIXED_PLAYER_X_POS = 200.0f; // Fixed horizontal position for player
 
   // Graphics methods
   bool initializeWindow();
