@@ -140,6 +140,8 @@ void ProtocolHandlers::handleGameState(const std::vector<uint8_t> &payload) {
     int offset = 5 + (i * PLAYER_DATA_SIZE);
     protocol::PlayerState state;
 
+    debugPrint("Processing player " + std::to_string(i) +
+               " data at offset " + std::to_string(offset));
     state.id = payload[offset];
     state.posX = (payload[offset + 1] << 8) | payload[offset + 2];
     state.posY = (payload[offset + 3] << 8) | payload[offset + 4];
@@ -148,10 +150,11 @@ void ProtocolHandlers::handleGameState(const std::vector<uint8_t> &payload) {
 
     playerStates.push_back(state);
 
-    debugPrint("Player " + std::to_string(state.id) + ": Position=(" +
-               std::to_string(state.posX) + "," + std::to_string(state.posY) +
-               "), Score=" + std::to_string(state.score) +
-               ", Alive=" + std::to_string(state.alive));
+    debug::logToFile("Player " + std::to_string(state.id) +
+               ": Position=(" + std::to_string(state.posX) + "," +
+               std::to_string(state.posY) + "), Score=" +
+               std::to_string(state.score) + ", Alive=" +
+               std::to_string(state.alive), "Protocol", debugMode_);
   }
 
   gameState_->setPlayerStates(playerStates);
@@ -391,7 +394,7 @@ void ProtocolHandlers::processCompleteMap() {
 }
 
 void ProtocolHandlers::debugPrint(const std::string &message) {
-  debug::logToFile("Protocol", message, debugMode_);
+  debug::print("Protocol", message, debugMode_);
 }
 
 } // namespace network
