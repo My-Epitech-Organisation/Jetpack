@@ -7,7 +7,6 @@
 */
 
 #include "debug.hpp"
-#include "../protocol.hpp"
 #include <arpa/inet.h>
 #include <cstring>
 #include <ctime>
