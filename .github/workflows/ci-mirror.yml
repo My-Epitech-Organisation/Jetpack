@@ -38,8 +38,11 @@ jobs:
 
       - name: Check coding style result
         run: |
-          # If we detect a non-zero count of coding style errors, fail the job
-          if ./coding-style.sh . . | grep -Eq '[1-9][0-9]* coding style error\(s\) reported in ' coding-style-reports.log; then
+          # Run the coding style checker and capture the output
+          ./coding-style.sh . . > result || true
+
+          # Check for coding style errors in the result file
+          if grep -Eq '[1-9][0-9]* coding style error\(s\) reported in ' result; then
             echo "Coding style errors found."
             exit 1
           else
