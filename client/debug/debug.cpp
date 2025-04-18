@@ -101,10 +101,6 @@ void logToFile(const std::string &component, const std::string &message,
     logFile << "[" << getTimestamp() << "][" << component << "] " << message
             << std::endl;
     logFile.flush();
-    
-    // Also print to console with debug mode on
-    std::cout << "[" << getTimestamp() << "][" << component << "] " << message
-              << std::endl << std::flush;
   }
 }
 

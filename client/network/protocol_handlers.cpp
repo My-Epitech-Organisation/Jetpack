@@ -140,7 +140,7 @@ void ProtocolHandlers::handleGameState(const std::vector<uint8_t> &payload) {
     int offset = 5 + (i * PLAYER_DATA_SIZE);
     protocol::PlayerState state;
 
-    debugPrint("Processing player " + std::to_string(i) +
+    debugLogToFile("Processing player " + std::to_string(i) +
                " data at offset " + std::to_string(offset));
     state.id = payload[offset];
     state.posX = (payload[offset + 1] << 8) | payload[offset + 2];

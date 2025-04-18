@@ -328,7 +328,7 @@ bool Network::receivePacket(protocol::PacketHeader *header,
     if (!payload->empty() && payload->size() <= 64) {
       ss << "\nPayload: " << debug::formatHexDump(*payload);
     }
-    debug::logToFile("Network", ss.str(), true);
+    debug::print("Network", ss.str(), true);
   }
 
   return true;
