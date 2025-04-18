@@ -47,8 +47,8 @@ typedef struct client_s {
     int data_fd;
     int score;
     bool is_alive;
-    int x;
-    int y;
+    uint16_t x;
+    uint16_t y;
     bool input_left;
     bool input_right;
     bool input_jetpack;

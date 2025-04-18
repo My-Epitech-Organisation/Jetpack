@@ -46,12 +46,12 @@ void write_state_payload(uint8_t *buffer, server_t *server,
 void write_data_state_payload(uint8_t *buffer, client_t *client, size_t offset,
     int i)
 {
-    buffer[offset + 1] = i;
-    buffer[offset + 2] = (client->x >> 8) & 0xFF;
-    buffer[offset + 3] = client->x & 0xFF;
-    buffer[offset + 4] = (client->y >> 8) & 0xFF;
-    buffer[offset + 5] = client->y & 0xFF;
-    buffer[offset + 6] = (client->score >> 8) & 0xFF;
-    buffer[offset + 7] = client->score & 0xFF;
-    buffer[offset + 8] = client->is_alive ? 1 : 0;
+    buffer[offset] = i;
+    buffer[offset + 1] = (client->x >> 8) & 0xFF;
+    buffer[offset + 2] = client->x & 0xFF;
+    buffer[offset + 3] = (client->y >> 8) & 0xFF;
+    buffer[offset + 4] = client->y & 0xFF;
+    buffer[offset + 5] = (client->score >> 8) & 0xFF;
+    buffer[offset + 6] = client->score & 0xFF;
+    buffer[offset + 7] = client->is_alive ? 1 : 0;
 }
