@@ -11,22 +11,18 @@ void send_welcome(int client_fd, uint8_t assigned_id)
 {
     uint8_t buffer[4 + 2];
     uint16_t length = 4 + 2;  // Raw length, not converted to network byte order
-    ssize_t bytes_sent;
 
     write_header(buffer, SERVER_WELCOME, length);
     buffer[4] = 1;
     buffer[5] = assigned_id;
-    bytes_sent = send(client_fd, buffer, sizeof(buffer), 0);
-    if (bytes_sent == -1) {
-        perror("send");
-    }
+    if (!send_with_write(client_fd, buffer, sizeof(buffer)))
+        perror("send_with_write SERVER_WELCOME");
 }
 
 void send_map_chunk(server_t *server, int client_fd, uint8_t col_index)
 {
     size_t total_size;
     uint8_t *buffer;
-    ssize_t bytes_sent;
 
     if (col_index >= server->map_cols)
         return;
@@ -38,9 +34,8 @@ void send_map_chunk(server_t *server, int client_fd, uint8_t col_index)
     write_map_payload(buffer, col_index, (uint16_t)server->map_cols);
     for (size_t row = 0; row < server->map_rows; row++)
         buffer[8 + row] = server->map[row][col_index];
-    bytes_sent = send(client_fd, buffer, total_size, 0);
-    if (bytes_sent == -1)
-        perror("send");
+    if (!send_with_write(client_fd, buffer, total_size))
+        perror("send_with_write MAP_CHUNK");
     free(buffer);
 }
 
