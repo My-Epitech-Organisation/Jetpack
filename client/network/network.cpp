@@ -26,6 +26,11 @@ Network::Network(const std::string &host, int port, bool debugMode,
       running_(false), gameState_(gameState) {
   // Initialize protocol handlers
   protocolHandlers_ = std::make_unique<ProtocolHandlers>(gameState, debugMode);
+
+  // Initialize pollfd structure
+  pfd_.fd = -1;
+  pfd_.events = POLLIN;
+  pfd_.revents = 0;
 }
 
 Network::~Network() {
@@ -80,6 +85,10 @@ bool Network::connect() {
 
   debug::logToFile("Network", "Connected successfully", debugMode_);
 
+  // Configure pollfd for socket
+  pfd_.fd = socket_;
+  pfd_.events = POLLIN;
+  
   // Send CLIENT_CONNECT packet per RFC protocol
   std::vector<uint8_t> payload;
   uint8_t reqPlayerID = 0; // Let server assign ID
@@ -129,35 +138,49 @@ void Network::run() {
     debug::logToFile("Network", "Network thread started", debugMode_);
 
     while (running_) {
-      // Receive packet from server
-      if (receivePacket(&header, &payload)) {
-        // Cast the uint8_t type field to the enum for proper handling
-        protocol::PacketType packetType =
-            static_cast<protocol::PacketType>(header.type);
-        switch (packetType) {
-        case protocol::SERVER_WELCOME:
-          protocolHandlers_->handleServerWelcome(payload);
+      // Use poll() pour check the socket
+      int pollResult = poll(&pfd_, 1, 50); // Timeout de 50ms
+      
+      if (pollResult < 0) {
+        debug::logToFile("Network", "Error in poll(): " + std::string(strerror(errno)), debugMode_);
+        break;
+      } else if (pollResult > 0) {
+        // Check events
+        if (pfd_.revents & POLLIN) {
+          if (receivePacket(&header, &payload)) {
+            // Cast the uint8_t type field to the enum for proper handling
+            protocol::PacketType packetType =
+                static_cast<protocol::PacketType>(header.type);
+            switch (packetType) {
+            case protocol::SERVER_WELCOME:
+              protocolHandlers_->handleServerWelcome(payload);
+              break;
+            case protocol::MAP_CHUNK:
+              protocolHandlers_->handleMapChunk(payload);
+              break;
+            case protocol::GAME_START:
+              protocolHandlers_->handleGameStart(payload);
+              break;
+            case protocol::GAME_STATE:
+              protocolHandlers_->handleGameState(payload);
+              break;
+            case protocol::GAME_END:
+              protocolHandlers_->handleGameEnd(payload);
+              break;
+            case protocol::DEBUG_INFO:
+              protocolHandlers_->handleDebugInfo(payload);
+              break;
+            default:
+              debug::print("Network",
+                          "Received unknown packet type: " +
+                              std::to_string(header.type),
+                          debugMode_);
+            }
+          }
+        }
+        if (pfd_.revents & (POLLHUP | POLLERR)) {
+          debug::logToFile("Network", "Socket error or disconnect detected", debugMode_);
           break;
-        case protocol::MAP_CHUNK:
-          protocolHandlers_->handleMapChunk(payload);
-          break;
-        case protocol::GAME_START:
-          protocolHandlers_->handleGameStart(payload);
-          break;
-        case protocol::GAME_STATE:
-          protocolHandlers_->handleGameState(payload);
-          break;
-        case protocol::GAME_END:
-          protocolHandlers_->handleGameEnd(payload);
-          break;
-        case protocol::DEBUG_INFO:
-          protocolHandlers_->handleDebugInfo(payload);
-          break;
-        default:
-          debug::print("Network",
-                       "Received unknown packet type: " +
-                           std::to_string(header.type),
-                       debugMode_);
         }
       }
 
@@ -174,9 +197,6 @@ void Network::run() {
 
       // Check connection health periodically
       checkConnectionHealth();
-
-      // Sleep to avoid busy waiting
-      std::this_thread::sleep_for(std::chrono::milliseconds(5));
     }
 
     debug::logToFile("Network", "Network thread exiting", debugMode_);
@@ -203,16 +223,16 @@ bool Network::sendPacket(protocol::PacketType type,
   header.length = htons(payload.size() + sizeof(header));
 
   // Send header
-  if (send(socket_, &header, sizeof(header), 0) != sizeof(header)) {
-    debug::logToFile("Network", "Failed to send packet header", debugMode_);
+  if (write(socket_, &header, sizeof(header)) != sizeof(header)) {
+    debug::logToFile("Network", "Failed to send packet header: " + std::string(strerror(errno)), debugMode_);
     return false;
   }
 
   // Send payload if any
   if (!payload.empty()) {
-    if (send(socket_, payload.data(), payload.size(), 0) !=
+    if (write(socket_, payload.data(), payload.size()) != 
         static_cast<ssize_t>(payload.size())) {
-      debug::logToFile("Network", "Failed to send packet payload", debugMode_);
+      debug::logToFile("Network", "Failed to send packet payload: " + std::string(strerror(errno)), debugMode_);
       return false;
     }
   }
@@ -238,13 +258,13 @@ bool Network::receivePacket(protocol::PacketHeader *header,
     return false;
 
   // Receive header
-  ssize_t bytesRead = recv(socket_, header, sizeof(*header), 0);
+  ssize_t bytesRead = read(socket_, header, sizeof(*header));
   if (bytesRead != sizeof(*header)) {
     if (bytesRead == 0) {
       debug::logToFile("Network", "Server closed connection", debugMode_);
     } else if (bytesRead < 0) {
       debug::logToFile(
-          "Network", "Error receiving header: " + std::string(strerror(errno)),
+          "Network", "Error reading header: " + std::string(strerror(errno)),
           debugMode_);
     }
     return false;
@@ -275,9 +295,12 @@ bool Network::receivePacket(protocol::PacketHeader *header,
     payload->resize(payloadLength);
 
     // Receive payload
-    bytesRead = recv(socket_, payload->data(), payloadLength, 0);
+    bytesRead = read(socket_, payload->data(), payloadLength);
     if (bytesRead != static_cast<ssize_t>(payloadLength)) {
-      debug::logToFile("Network", "Failed to receive full payload", debugMode_);
+      debug::logToFile("Network", 
+                     "Failed to receive full payload: expected " + 
+                     std::to_string(payloadLength) + " bytes, got " + 
+                     std::to_string(bytesRead), debugMode_);
       return false;
     }
   } else {

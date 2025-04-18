@@ -16,6 +16,7 @@
 #include <atomic>
 #include <memory>
 #include <netinet/in.h>
+#include <poll.h>
 #include <string>
 #include <sys/socket.h>
 #include <thread>
@@ -81,6 +82,7 @@ private:
   int socket_;
   std::atomic<bool> running_;
   GameState *gameState_;
+  struct pollfd pfd_;
 
   // Thread
   std::thread networkThread_;
