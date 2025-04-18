@@ -9,12 +9,12 @@
 
 void check_limits(client_t *client, server_t *server)
 {
-    if (client->x >= server->map_cols * 100)
-        client->x = server->map_cols * 100 - 1;
+    if (client->x >= server->map_cols * 170)
+        client->x = server->map_cols * 170 - 1;
     if (client->x <= 0)
         client->x = 0;
-    if (client->y >= server->map_rows * 100)
-        client->y = server->map_rows * 100 - 1;
+    if (client->y >= server->map_rows * 170)
+        client->y = server->map_rows * 170 - 1;
     if (client->y <= 0)
         client->y = 0;
 }
@@ -32,6 +32,7 @@ void update_game_state(server_t *server)
             client->y -= 40;
         else
             client->y += 50;
+        client->x += 50;
         check_limits(client, server);
     }
 }
