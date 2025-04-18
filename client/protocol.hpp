@@ -39,8 +39,8 @@ enum GameEndReason : uint8_t {
 
 // Jetpack state values
 enum JetpackState : uint8_t {
-  JETPACK_OFF = 0x00,  // Falling
-  JETPACK_ON = 0x01    // Ascending
+  JETPACK_OFF = 0x00, // Falling
+  JETPACK_ON = 0x01   // Ascending
 };
 
 // Header structure (4 bytes)

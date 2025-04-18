@@ -19,9 +19,9 @@ namespace jetpack {
 class GameState {
 public:
   GameState()
-      : connected(false), assignedId(0), gameRunning(false), jetpackActive(false),
-        mapWidth(0), mapHeight(0), currentTick(0), gameEnded(false),
-        winnerId(0xFF) {}
+      : connected(false), assignedId(0), gameRunning(false),
+        jetpackActive(false), mapWidth(0), mapHeight(0), currentTick(0),
+        gameEnded(false), winnerId(0xFF) {}
 
   // Thread-safe setters
   void setConnected(bool status);

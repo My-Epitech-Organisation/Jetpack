@@ -314,8 +314,8 @@ bool Network::receivePacket(protocol::PacketHeader *header,
 void Network::sendPlayerInput() {
   std::vector<uint8_t> payload;
   uint8_t playerId = gameState_->getAssignedId();
-  uint8_t jetpackState = gameState_->isJetpackActive() ? 
-                        protocol::JETPACK_ON : protocol::JETPACK_OFF;
+  uint8_t jetpackState = gameState_->isJetpackActive() ? protocol::JETPACK_ON
+                                                       : protocol::JETPACK_OFF;
 
   payload.push_back(playerId);
   payload.push_back(jetpackState);
@@ -323,10 +323,12 @@ void Network::sendPlayerInput() {
   sendPacket(protocol::CLIENT_INPUT, payload);
 
   // Log when jetpack state changes
-  static uint8_t lastJetpackState = 0xFF; // Initialize to invalid value to ensure first log
+  static uint8_t lastJetpackState =
+      0xFF; // Initialize to invalid value to ensure first log
   if (jetpackState != lastJetpackState) {
     std::stringstream ss;
-    ss << "Input changed: Jetpack=" << (jetpackState == protocol::JETPACK_ON ? "ON" : "OFF");
+    ss << "Input changed: Jetpack="
+       << (jetpackState == protocol::JETPACK_ON ? "ON" : "OFF");
     debug::logToFile("Network", ss.str(), debugMode_);
     lastJetpackState = jetpackState;
   }

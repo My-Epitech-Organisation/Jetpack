@@ -26,8 +26,8 @@ void server(int argc, char **argv)
     parsing_launch(argc, argv, server);
     server->fd = set_server_socket(server);
     server->client_count = 0;
-    server->start_x = 0.5;
-    server->start_y = 50;
+    server->start_x = 1;
+    server->start_y = 1;
     set_bind(server);
     set_listen(server);
     load_map(server);

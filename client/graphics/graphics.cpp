@@ -180,8 +180,8 @@ void Graphics::renderMap() {
   }
 
   // Find the local player to determine the scroll position
-  const protocol::PlayerState* localPlayer = nullptr;
-  for (const auto& player : players) {
+  const protocol::PlayerState *localPlayer = nullptr;
+  for (const auto &player : players) {
     if (player.id == gameState_->getAssignedId() && player.alive != 0) {
       localPlayer = &player;
       break;
@@ -199,12 +199,14 @@ void Graphics::renderMap() {
 
   // Calculate camera offset based on player position
   // The player stays fixed at FIXED_PLAYER_X_POS
-  float cameraOffsetX = localPlayer->posX * TILE_SIZE / 100.0f - FIXED_PLAYER_X_POS;
-  
+  float cameraOffsetX =
+      localPlayer->posX * TILE_SIZE / 100.0f - FIXED_PLAYER_X_POS;
+
   // Ensure the map doesn't scroll past its beginning
   cameraOffsetX = std::max(0.0f, cameraOffsetX);
-  
-  // Ensure the map doesn't scroll past its end if the map is wider than the screen
+
+  // Ensure the map doesn't scroll past its end if the map is wider than the
+  // screen
   if (mapWidth > viewWidth) {
     cameraOffsetX = std::min(cameraOffsetX, mapWidth - viewWidth);
   }
@@ -218,11 +220,11 @@ void Graphics::renderMap() {
         continue;
 
       uint8_t tileType = mapData[index];
-      
+
       // Apply camera offset to x position
       float posX = x * TILE_SIZE - cameraOffsetX;
       float posY = offsetY + y * TILE_SIZE;
-      
+
       // Only draw tiles that are visible on screen
       if (posX < -TILE_SIZE || posX > viewWidth)
         continue;
@@ -262,8 +264,8 @@ void Graphics::renderPlayers() {
   }
 
   // Find the local player to determine the scroll position
-  const protocol::PlayerState* localPlayer = nullptr;
-  for (const auto& player : players) {
+  const protocol::PlayerState *localPlayer = nullptr;
+  for (const auto &player : players) {
     if (player.id == gameState_->getAssignedId() && player.alive != 0) {
       localPlayer = &player;
       break;
@@ -281,7 +283,8 @@ void Graphics::renderPlayers() {
   float offsetY = (viewHeight - mapHeight) / 2;
 
   // Calculate camera offset based on player position (same as in renderMap)
-  float cameraOffsetX = localPlayer->posX * TILE_SIZE / 100.0f - FIXED_PLAYER_X_POS;
+  float cameraOffsetX =
+      localPlayer->posX * TILE_SIZE / 100.0f - FIXED_PLAYER_X_POS;
   cameraOffsetX = std::max(0.0f, cameraOffsetX);
   if (mapWidth > viewWidth) {
     cameraOffsetX = std::min(cameraOffsetX, mapWidth - viewWidth);
