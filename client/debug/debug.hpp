@@ -9,12 +9,7 @@
 #ifndef CLIENT_DEBUG_DEBUG_HPP_
 #define CLIENT_DEBUG_DEBUG_HPP_
 
-#include <chrono>
-#include <filesystem>
-#include <fstream>
-#include <iomanip>
-#include <mutex>
-#include <sstream>
+#include <cstdint>
 #include <string>
 #include <vector>
 

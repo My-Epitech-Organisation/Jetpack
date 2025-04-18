@@ -7,12 +7,14 @@
 */
 
 #include "network.hpp"
-#include <algorithm>
+#include "../debug/debug.hpp"
 #include <arpa/inet.h>
 #include <chrono>
 #include <cstring>
+#include <iomanip>
 #include <iostream>
 #include <netdb.h>
+#include <sstream>
 #include <thread>
 
 namespace jetpack {

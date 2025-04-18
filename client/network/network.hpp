@@ -9,16 +9,13 @@
 #ifndef CLIENT_NETWORK_NETWORK_HPP_
 #define CLIENT_NETWORK_NETWORK_HPP_
 
-#include "../debug/debug.hpp"
 #include "../gamestate.hpp"
 #include "../protocol.hpp"
 #include "protocol_handlers.hpp"
 #include <arpa/inet.h>
 #include <atomic>
-#include <iomanip>
 #include <memory>
 #include <netinet/in.h>
-#include <sstream>
 #include <string>
 #include <sys/socket.h>
 #include <thread>

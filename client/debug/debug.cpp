@@ -11,7 +11,10 @@
 #include <arpa/inet.h>
 #include <cstring>
 #include <ctime>
+#include <filesystem>
+#include <fstream>
 #include <iostream>
+#include <mutex>
 #include <sys/stat.h>
 
 namespace jetpack {
