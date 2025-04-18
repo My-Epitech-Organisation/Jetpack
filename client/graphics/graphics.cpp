@@ -340,32 +340,12 @@ void Graphics::renderDebugInfo() {
 }
 
 void Graphics::handleKeyPress(sf::Keyboard::Key key, bool isPressed) {
-  uint8_t currentMask = gameState_->getInputMask();
-  uint8_t newMask = currentMask;
+  bool jetpackCurrentlyActive = gameState_->isJetpackActive();
+  bool newJetpackState = jetpackCurrentlyActive;
 
   switch (key) {
-  case sf::Keyboard::Left:
-    if (isPressed) {
-      newMask |= protocol::MOVE_LEFT;
-    } else {
-      newMask &= ~protocol::MOVE_LEFT;
-    }
-    break;
-
-  case sf::Keyboard::Right:
-    if (isPressed) {
-      newMask |= protocol::MOVE_RIGHT;
-    } else {
-      newMask &= ~protocol::MOVE_RIGHT;
-    }
-    break;
-
   case sf::Keyboard::Space:
-    if (isPressed) {
-      newMask |= protocol::JETPACK;
-    } else {
-      newMask &= ~protocol::JETPACK;
-    }
+    newJetpackState = isPressed;
     break;
 
   case sf::Keyboard::Escape:
@@ -378,8 +358,8 @@ void Graphics::handleKeyPress(sf::Keyboard::Key key, bool isPressed) {
     return;
   }
 
-  if (newMask != currentMask) {
-    gameState_->setInputMask(newMask);
+  if (newJetpackState != jetpackCurrentlyActive) {
+    gameState_->setJetpackActive(newJetpackState);
   }
 }
 

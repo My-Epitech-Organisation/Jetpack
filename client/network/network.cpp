@@ -314,25 +314,21 @@ bool Network::receivePacket(protocol::PacketHeader *header,
 void Network::sendPlayerInput() {
   std::vector<uint8_t> payload;
   uint8_t playerId = gameState_->getAssignedId();
-  uint8_t inputMask = gameState_->getInputMask();
+  uint8_t jetpackState = gameState_->isJetpackActive() ? 
+                        protocol::JETPACK_ON : protocol::JETPACK_OFF;
 
   payload.push_back(playerId);
-  payload.push_back(inputMask);
-
-  // Optional sequence number could be added here
+  payload.push_back(jetpackState);
 
   sendPacket(protocol::CLIENT_INPUT, payload);
 
-  // Log when input mask changes
-  static uint8_t lastInputMask = 0;
-  if (inputMask != lastInputMask) {
+  // Log when jetpack state changes
+  static uint8_t lastJetpackState = 0xFF; // Initialize to invalid value to ensure first log
+  if (jetpackState != lastJetpackState) {
     std::stringstream ss;
-    ss << "Input changed: 0x" << std::hex << static_cast<int>(inputMask)
-       << std::dec << " (L:" << (inputMask & protocol::MOVE_LEFT ? "1" : "0")
-       << " R:" << (inputMask & protocol::MOVE_RIGHT ? "1" : "0")
-       << " J:" << (inputMask & protocol::JETPACK ? "1" : "0") << ")";
+    ss << "Input changed: Jetpack=" << (jetpackState == protocol::JETPACK_ON ? "ON" : "OFF");
     debug::logToFile("Network", ss.str(), debugMode_);
-    lastInputMask = inputMask;
+    lastJetpackState = jetpackState;
   }
 }
 
