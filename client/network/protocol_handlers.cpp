@@ -32,7 +32,6 @@ void ProtocolHandlers::handleServerWelcome(
     debugLogToFile("SERVER_WELCOME: Connection accepted, Assigned ID=" +
                    std::to_string(assignedId));
 
-    // Log additional data if present
     if (payload.size() > 2) {
       std::stringstream ss;
       ss << "Additional data (" << (payload.size() - 2) << " bytes): ";
@@ -62,9 +61,7 @@ void ProtocolHandlers::handleMapChunk(const std::vector<uint8_t> &payload) {
                  ", Count=" + std::to_string(chunkCount) +
                  ", Size=" + std::to_string(payload.size() - 4) + " bytes");
 
-  // Handle first chunk receiving
   if (chunkIndex == 0) {
-    // Reset map chunk storage when receiving the first chunk
     mapChunks.clear();
     mapChunks.resize(chunkCount);
     expectedChunkCount = chunkCount;
@@ -72,19 +69,16 @@ void ProtocolHandlers::handleMapChunk(const std::vector<uint8_t> &payload) {
     mapComplete = false;
   }
 
-  // Validate chunk index
   if (chunkIndex >= mapChunks.size()) {
     debugPrint("MAP_CHUNK: Invalid chunk index: " + std::to_string(chunkIndex) +
                ", expected max " + std::to_string(mapChunks.size() - 1));
     return;
   }
 
-  // Store the chunk data (excluding the chunk header)
   std::vector<uint8_t> chunkData(payload.begin() + 4, payload.end());
   mapChunks[chunkIndex] = chunkData;
   receivedChunkCount++;
 
-  // Check if we've received all chunks
   if (receivedChunkCount == expectedChunkCount) {
     debugLogToFile("MAP_CHUNK: All " + std::to_string(expectedChunkCount) +
                    " chunks received, processing complete map");
@@ -106,7 +100,6 @@ void ProtocolHandlers::handleGameStart(const std::vector<uint8_t> &payload) {
                  ", Start position=(" + std::to_string(startX) + "," +
                  std::to_string(startY) + ")");
 
-  // Game is now running
   gameState_->setGameRunning(true);
 }
 
@@ -190,7 +183,6 @@ void ProtocolHandlers::handleGameEnd(const std::vector<uint8_t> &payload) {
 
   debugPrint("GAME_END: Reason=" + reasonStr + ", Winner=" + winnerStr);
 
-  // Additional score data may be present
   if (payload.size() > 2) {
     debugPrint("GAME_END: Score data present (" +
                std::to_string(payload.size() - 2) + " bytes)");
@@ -208,7 +200,6 @@ void ProtocolHandlers::handleDebugInfo(const std::vector<uint8_t> &payload) {
 
   uint16_t msgLen = (payload[0] << 8) | payload[1];
 
-  // Fix: Use explicit size_t type for the sum to avoid sign comparison issues
   size_t requiredSize = static_cast<size_t>(2) + static_cast<size_t>(msgLen);
   if (payload.size() < requiredSize) {
     debugPrint("DEBUG_INFO: Not enough data");
@@ -220,13 +211,11 @@ void ProtocolHandlers::handleDebugInfo(const std::vector<uint8_t> &payload) {
 }
 
 void ProtocolHandlers::processCompleteMap() {
-  // Combine all chunks into a single data array
   std::vector<uint8_t> completeMapData;
   for (const auto &chunk : mapChunks) {
     completeMapData.insert(completeMapData.end(), chunk.begin(), chunk.end());
   }
 
-  // Log the total size of the map data
   debugLogToFile("Map data complete: " +
                  std::to_string(completeMapData.size()) + " bytes");
 
@@ -345,13 +334,10 @@ void ProtocolHandlers::processCompleteMap() {
     }
   }
 
-  // If we can't determine the format, use known constraints:
-  // We know the map is 10 rows high
   const uint16_t KNOWN_MAP_HEIGHT = 10;
   uint16_t width =
       static_cast<uint16_t>(completeMapData.size() / KNOWN_MAP_HEIGHT);
 
-  // If width calculation makes sense (divides evenly)
   if (completeMapData.size() % KNOWN_MAP_HEIGHT == 0) {
     debugLogToFile(
         "Using known map height constraint: " + std::to_string(width) + "x" +

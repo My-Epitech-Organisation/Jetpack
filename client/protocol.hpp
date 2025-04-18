@@ -37,7 +37,7 @@ enum GameEndReason : uint8_t {
   PLAYER_DISCONNECT = 0x03
 };
 
-// Input mask bits (according to RFC)
+// Input mask bits
 enum InputMask : uint8_t {
   MOVE_LEFT = 0x01,  // bit 0
   MOVE_RIGHT = 0x02, // bit 1
@@ -70,7 +70,7 @@ enum MapElement : uint8_t {
 };
 
 // Special values
-constexpr uint8_t NO_WINNER = 0xFF; // Used in GAME_END when there's a draw
+constexpr uint8_t NO_WINNER = 0xFF;
 
 } // namespace protocol
 } // namespace jetpack

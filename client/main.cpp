@@ -13,7 +13,6 @@
 #include <atomic>
 #include <chrono>
 #include <csignal>
-#include <cstring>
 #include <iostream>
 #include <memory>
 #include <string>
@@ -32,7 +31,6 @@ void signal_handler(int signal) {
                         g_debug_mode);
 
   if (g_network) {
-    // Send a final debug message if in debug mode
     if (g_debug_mode) {
       g_network->sendDebugMessage("Client shutting down due to signal " +
                                   std::to_string(signal));
@@ -44,7 +42,6 @@ void signal_handler(int signal) {
     g_graphics->stop();
   }
 
-  // Close log file
   jetpack::debug::shutdownLogging();
 }
 
@@ -57,7 +54,6 @@ void print_usage(const char *program_name) {
             << std::endl;
 }
 
-// Function called when the window is closed
 void handle_window_closed() {
   jetpack::debug::print("Main",
                         "Window closed callback triggered, initiating shutdown",
@@ -66,7 +62,6 @@ void handle_window_closed() {
 }
 
 int main(int argc, char *argv[]) {
-  // Parse command line arguments
   std::string host;
   int port = 0;
   bool debug_mode = false;
@@ -111,7 +106,6 @@ int main(int argc, char *argv[]) {
         << "Debug mode enabled - verbose protocol logging will be displayed"
         << std::endl;
 
-    // Initialize logging system to create log file
     if (jetpack::debug::initLogging(debug_mode)) {
       std::cout << "Debug logging initialized" << std::endl;
       jetpack::debug::logToFile(
@@ -121,28 +115,22 @@ int main(int argc, char *argv[]) {
     }
   }
 
-  // Register signal handler for graceful shutdown
   std::signal(SIGINT, signal_handler);
   std::signal(SIGTERM, signal_handler);
 
   try {
-    // Initialize shared game state
     auto gameState = std::make_unique<jetpack::GameState>();
 
-    // Initialize network and graphics components
     auto network = std::make_unique<jetpack::network::Network>(
         host, port, debug_mode, gameState.get());
     auto graphics = std::make_unique<jetpack::graphics::Graphics>(
         gameState.get(), debug_mode);
 
-    // Set global pointers for signal handling
     g_network = network.get();
     g_graphics = graphics.get();
 
-    // Configure window close callback
     graphics->setOnWindowClosedCallback(handle_window_closed);
 
-    // Start network and graphics threads
     jetpack::debug::print("Main",
                           "Connecting to " + host + ":" + std::to_string(port),
                           debug_mode);
@@ -157,34 +145,29 @@ int main(int argc, char *argv[]) {
     network->run();
     graphics->run();
 
-    // Optional: Send initial debug message if in debug mode
     if (debug_mode) {
       network->sendDebugMessage("Client started with debug mode enabled");
       jetpack::debug::logToFile(
           "Main", "Network and graphics systems initialized", debug_mode);
     }
 
-    // Wait until graphics thread terminates or window is closed
     while (graphics->isRunning() && !g_window_closed) {
       std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
 
-    // If window was closed, stop network thread
     if (g_window_closed) {
       jetpack::debug::print("Main",
                             "Main window was closed, stopping network thread",
                             debug_mode);
-      network->disconnect(); // Send CLIENT_DISCONNECT message before closing
+      network->disconnect();
       network->stop();
     } else {
-      // Normal shutdown (other reason)
       network->stop();
     }
 
     jetpack::debug::print("Main", "Client shutting down normally", debug_mode);
     std::cout << "Client shut down successfully" << std::endl;
 
-    // Close log file
     jetpack::debug::shutdownLogging();
 
   } catch (const std::exception &e) {

@@ -13,7 +13,7 @@ void accept_client(server_t *server)
 
     if (!new_client)
         handle_error("malloc");
-    memset(new_client, 0, sizeof(client_t)); // Initialisation complète à zéro
+    memset(new_client, 0, sizeof(client_t));
     new_client->addr_len = sizeof(new_client->addr);
     new_client->fd = accept(server->fd, (struct sockaddr *) &new_client->addr,
         &new_client->addr_len);

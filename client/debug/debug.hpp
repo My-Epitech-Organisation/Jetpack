@@ -76,16 +76,6 @@ std::string getTimestamp();
  */
 std::string getFileTimestamp();
 
-/**
- * @brief Send a DEBUG_INFO packet to server
- *
- * @param socket Socket to send on
- * @param message Debug message to send
- * @param debugMode Whether debug mode is enabled
- * @return true if sent successfully
- */
-bool sendDebugPacket(int socket, const std::string &message, bool debugMode);
-
 } // namespace debug
 } // namespace jetpack
 
