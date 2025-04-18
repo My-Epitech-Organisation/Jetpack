@@ -7,6 +7,18 @@
 
 #include "includes/server.h"
 
+client_t *set_values_to_client(client_t *new_client, server_t *server)
+{
+    new_client->score = 0;
+    new_client->is_alive = true;
+    new_client->x = server->start_x * 100;
+    new_client->y = server->start_y * 100;
+    new_client->input_left = false;
+    new_client->input_right = false;
+    new_client->input_jetpack = false;
+    return new_client;
+}
+
 void accept_client(server_t *server)
 {
     client_t *new_client = malloc(sizeof(client_t));
@@ -22,14 +34,7 @@ void accept_client(server_t *server)
         free(new_client);
         return;
     }
-    new_client->score = 0;
-    new_client->is_alive = true;
-    new_client->x = server->start_x * 100;
-    new_client->y = server->start_y * 100;
-    new_client->input_left = false;
-    new_client->input_right = false;
-    new_client->input_jetpack = false;
-
+    new_client = set_values_to_client(new_client, server);
     server->client = realloc(server->client,
         (server->client_count + 1) * sizeof(client_t *));
     server->client[server->client_count] = new_client;
