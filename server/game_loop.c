@@ -7,6 +7,14 @@
 
 #include "includes/server.h"
 
+void check_limits(client_t *client, server_t *server)
+{
+    if (client->x >= server->map_cols)
+        client->x = server->map_cols - 1;
+    if (client->y >= server->map_rows)
+        client->y = server->map_rows - 1;
+}
+
 void update_game_state(server_t *server)
 {
     client_t *client;
@@ -21,6 +29,9 @@ void update_game_state(server_t *server)
             client->x++;
         if (client->input_jetpack)
             client->y--;
+        else
+            client->y++;
+        check_limits(client, server);
     }
 }
 
