@@ -42,6 +42,16 @@ jobs:
       - name: Run Coding Style Checker
         run: ./coding-style.sh . reports
 
+      - name: Check coding style result
+        run: |
+          # If we detect a non-zero count of coding style errors, fail the job
+          if grep -Eq '[1-9][0-9]* coding style error\(s\) reported in ' coding-style-reports.log; then
+            echo "Coding style errors found."
+            exit 1
+          else
+            echo "No coding style error found."
+          fi
+
   mirror:
     name: Mirror to Epitech Repository
     needs: [build_and_test, coding_style]
