@@ -132,7 +132,6 @@ void Graphics::processEvents() {
   sf::Event event;
   while (window_->pollEvent(event)) {
     if (event.type == sf::Event::Closed) {
-      debug::print("Graphics", "Window closed event received", debugMode_);
       window_->close();
       running_ = false;
       // Call callback if defined

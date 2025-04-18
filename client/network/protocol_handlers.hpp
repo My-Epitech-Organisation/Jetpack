@@ -41,6 +41,7 @@ private:
 
   // Helper methods
   void debugPrint(const std::string &message);
+  void debugLogToFile(const std::string &message);
   void processCompleteMap();
 };
 
