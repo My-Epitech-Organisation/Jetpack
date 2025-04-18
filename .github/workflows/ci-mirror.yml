@@ -25,27 +25,22 @@ jobs:
         run: make tests_run
 
   coding_style:
-    runs-on: "ubuntu-latest"
-    container:
-        image: "ghcr.io/epitech/coding-style-checker:latest"
+    name: Coding Style Check
+    runs-on: ubuntu-latest
     steps:
-        -   name: "Check coding style"
-            run: "/usr/local/bin/check.sh $(pwd) $(pwd)"
+      - name: Checkout Repository
+        uses: actions/checkout@v3
 
-        -   name: "Annotate coding-style errors"
-            run: |
-                status=0
-                while IFS= read -r line; do
-                    file=$(echo "${line}" | cut -d ':' -f1)
-                    pos=$(echo "${line}" | cut -d ':' -f2)
-                    type=$(echo "${line}" | cut -d ':' -f3)
-                    csid=$(echo "${line}" | cut -d ':' -f4)
+      - name: Create Reports Directory
+        run: mkdir -p reports
 
-                    [[ "${type:1}" == "illegal"* ]] && continue
-                    echo "::error file=${file},line=${pos},title=${type:1} ${csid}::${type:1}: ${csid} at ${file}:${pos}"
-                    status=1
-                done < coding-style-reports.log
-                exit "${status}"
+      - name: Download Coding Style Checker
+        run: |
+          curl -L https://raw.githubusercontent.com/Epitech/coding-style-checker/refs/heads/main/coding-style.sh -o coding-style.sh
+          chmod +x coding-style.sh
+
+      - name: Run Coding Style Checker
+        run: ./coding-style.sh . reports
 
   mirror:
     name: Mirror to Epitech Repository
