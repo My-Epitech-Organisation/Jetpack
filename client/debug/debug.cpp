@@ -7,11 +7,13 @@
 */
 
 #include "debug.hpp"
-#include "../protocol.hpp"
 #include <arpa/inet.h>
 #include <cstring>
 #include <ctime>
+#include <filesystem>
+#include <fstream>
 #include <iostream>
+#include <mutex>
 #include <sys/stat.h>
 
 namespace jetpack {
@@ -28,13 +30,11 @@ bool initLogging(bool debugMode) {
     return false;
 
   try {
-    // Create debug directory if it doesn't exist
     std::filesystem::path debugDir = "debug";
     if (!std::filesystem::exists(debugDir)) {
       std::filesystem::create_directory(debugDir);
     }
 
-    // Create log file with timestamp in name
     logFileName = "debug/client_" + getFileTimestamp() + ".log";
     logFile.open(logFileName, std::ios::out | std::ios::trunc);
 
@@ -45,7 +45,6 @@ bool initLogging(bool debugMode) {
 
     loggingEnabled = true;
 
-    // Log initial message
     logFile << "=======================================" << std::endl;
     logFile << "Jetpack Client Debug Log" << std::endl;
     logFile << "Started at: " << getFileTimestamp() << std::endl;
@@ -74,19 +73,17 @@ void shutdownLogging() {
 void print(const std::string &component, const std::string &message,
            bool debugMode) {
   if (debugMode) {
-    // Get timestamp
     std::string timestamp = getTimestamp();
 
-    // Print to console
     std::cout << "[" << timestamp << "][" << component << "] " << message
-              << std::endl;
+              << std::endl
+              << std::flush;
 
-    // Also log to file if logging is enabled
     if (loggingEnabled && logFile.is_open()) {
       std::lock_guard<std::mutex> lock(logMutex);
       logFile << "[" << timestamp << "][" << component << "] " << message
               << std::endl;
-      logFile.flush(); // Ensure it's written immediately
+      logFile.flush();
     }
   }
 }
@@ -152,48 +149,6 @@ std::string getFileTimestamp() {
   std::stringstream ss;
   ss << std::put_time(&tm, "%Y-%m-%d_%H-%M-%S");
   return ss.str();
-}
-
-bool sendDebugPacket(int socket, const std::string &message, bool debugMode) {
-  if (!debugMode || socket < 0 || message.empty()) {
-    return false;
-  }
-
-  // Create packet header
-  protocol::PacketHeader header;
-  header.magic = protocol::MAGIC_BYTE;
-  header.type = protocol::DEBUG_INFO;
-
-  // Create payload (2 bytes length + message)
-  std::vector<uint8_t> payload;
-  uint16_t msgLen = static_cast<uint16_t>(message.length());
-  uint16_t msgLenNet = htons(msgLen);
-
-  // Add length bytes
-  uint8_t *lenBytes = reinterpret_cast<uint8_t *>(&msgLenNet);
-  payload.push_back(lenBytes[0]);
-  payload.push_back(lenBytes[1]);
-
-  // Add message bytes
-  payload.insert(payload.end(), message.begin(), message.end());
-
-  // Set packet length
-  header.length = htons(sizeof(header) + payload.size());
-
-  // Send header
-  if (send(socket, &header, sizeof(header), 0) != sizeof(header)) {
-    return false;
-  }
-
-  // Send payload
-  if (send(socket, payload.data(), payload.size(), 0) !=
-      static_cast<ssize_t>(payload.size())) {
-    return false;
-  }
-
-  // Print locally too
-  print("DEBUG_SENT", message, debugMode);
-  return true;
 }
 
 } // namespace debug

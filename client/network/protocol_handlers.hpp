@@ -9,10 +9,7 @@
 #ifndef CLIENT_NETWORK_PROTOCOL_HANDLERS_HPP_
 #define CLIENT_NETWORK_PROTOCOL_HANDLERS_HPP_
 
-#include "../debug/debug.hpp"
 #include "../gamestate.hpp"
-#include "../protocol.hpp"
-#include <iostream>
 #include <string>
 #include <vector>
 
@@ -44,6 +41,7 @@ private:
 
   // Helper methods
   void debugPrint(const std::string &message);
+  void debugLogToFile(const std::string &message);
   void processCompleteMap();
 };
 

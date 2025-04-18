@@ -7,7 +7,9 @@
 */
 
 #include "protocol_handlers.hpp"
+#include "../debug/debug.hpp"
 #include <cmath>
+#include <sstream>
 
 namespace jetpack {
 namespace network {
@@ -27,16 +29,15 @@ void ProtocolHandlers::handleServerWelcome(
   uint8_t assignedId = payload[1];
 
   if (acceptCode == 1) {
-    debugPrint("SERVER_WELCOME: Connection accepted, Assigned ID=" +
-               std::to_string(assignedId));
+    debugLogToFile("SERVER_WELCOME: Connection accepted, Assigned ID=" +
+                   std::to_string(assignedId));
 
-    // Log additional data if present
     if (payload.size() > 2) {
       std::stringstream ss;
       ss << "Additional data (" << (payload.size() - 2) << " bytes): ";
       ss << debug::formatHexDump(
           std::vector<uint8_t>(payload.begin() + 2, payload.end()));
-      debugPrint(ss.str());
+      debugLogToFile(ss.str());
     }
 
     gameState_->setConnected(true);
@@ -56,13 +57,11 @@ void ProtocolHandlers::handleMapChunk(const std::vector<uint8_t> &payload) {
   uint16_t chunkIndex = (payload[0] << 8) | payload[1];
   uint16_t chunkCount = (payload[2] << 8) | payload[3];
 
-  debugPrint("MAP_CHUNK: Index=" + std::to_string(chunkIndex) +
-             ", Count=" + std::to_string(chunkCount) +
-             ", Size=" + std::to_string(payload.size() - 4) + " bytes");
+  debugLogToFile("MAP_CHUNK: Index=" + std::to_string(chunkIndex) +
+                 ", Count=" + std::to_string(chunkCount) +
+                 ", Size=" + std::to_string(payload.size() - 4) + " bytes");
 
-  // Handle first chunk receiving
   if (chunkIndex == 0) {
-    // Reset map chunk storage when receiving the first chunk
     mapChunks.clear();
     mapChunks.resize(chunkCount);
     expectedChunkCount = chunkCount;
@@ -70,22 +69,19 @@ void ProtocolHandlers::handleMapChunk(const std::vector<uint8_t> &payload) {
     mapComplete = false;
   }
 
-  // Validate chunk index
   if (chunkIndex >= mapChunks.size()) {
     debugPrint("MAP_CHUNK: Invalid chunk index: " + std::to_string(chunkIndex) +
                ", expected max " + std::to_string(mapChunks.size() - 1));
     return;
   }
 
-  // Store the chunk data (excluding the chunk header)
   std::vector<uint8_t> chunkData(payload.begin() + 4, payload.end());
   mapChunks[chunkIndex] = chunkData;
   receivedChunkCount++;
 
-  // Check if we've received all chunks
   if (receivedChunkCount == expectedChunkCount) {
-    debugPrint("MAP_CHUNK: All " + std::to_string(expectedChunkCount) +
-               " chunks received, processing complete map");
+    debugLogToFile("MAP_CHUNK: All " + std::to_string(expectedChunkCount) +
+                   " chunks received, processing complete map");
     processCompleteMap();
   }
 }
@@ -100,11 +96,10 @@ void ProtocolHandlers::handleGameStart(const std::vector<uint8_t> &payload) {
   uint16_t startX = (payload[1] << 8) | payload[2];
   uint16_t startY = (payload[3] << 8) | payload[4];
 
-  debugPrint("GAME_START: Player count=" + std::to_string(playerCount) +
-             ", Start position=(" + std::to_string(startX) + "," +
-             std::to_string(startY) + ")");
+  debugLogToFile("GAME_START: Player count=" + std::to_string(playerCount) +
+                 ", Start position=(" + std::to_string(startX) + "," +
+                 std::to_string(startY) + ")");
 
-  // Game is now running
   gameState_->setGameRunning(true);
 }
 
@@ -118,8 +113,8 @@ void ProtocolHandlers::handleGameState(const std::vector<uint8_t> &payload) {
       (payload[0] << 24) | (payload[1] << 16) | (payload[2] << 8) | payload[3];
   uint8_t numPlayers = payload[4];
 
-  debugPrint("GAME_STATE: Tick=" + std::to_string(tick) +
-             ", Players=" + std::to_string(numPlayers));
+  debugLogToFile("GAME_STATE: Tick=" + std::to_string(tick) +
+                 ", Players=" + std::to_string(numPlayers));
 
   gameState_->setCurrentTick(tick);
 
@@ -138,6 +133,8 @@ void ProtocolHandlers::handleGameState(const std::vector<uint8_t> &payload) {
     int offset = 5 + (i * PLAYER_DATA_SIZE);
     protocol::PlayerState state;
 
+    debugLogToFile("Processing player " + std::to_string(i) +
+                   " data at offset " + std::to_string(offset));
     state.id = payload[offset];
     state.posX = (payload[offset + 1] << 8) | payload[offset + 2];
     state.posY = (payload[offset + 3] << 8) | payload[offset + 4];
@@ -146,10 +143,11 @@ void ProtocolHandlers::handleGameState(const std::vector<uint8_t> &payload) {
 
     playerStates.push_back(state);
 
-    debugPrint("Player " + std::to_string(state.id) + ": Position=(" +
-               std::to_string(state.posX) + "," + std::to_string(state.posY) +
-               "), Score=" + std::to_string(state.score) +
-               ", Alive=" + std::to_string(state.alive));
+    debugLogToFile("Player " + std::to_string(state.id) + ": Position=(" +
+                   std::to_string(state.posX) + "," +
+                   std::to_string(state.posY) +
+                   "), Score=" + std::to_string(state.score) +
+                   ", Alive=" + std::to_string(state.alive));
   }
 
   gameState_->setPlayerStates(playerStates);
@@ -185,7 +183,6 @@ void ProtocolHandlers::handleGameEnd(const std::vector<uint8_t> &payload) {
 
   debugPrint("GAME_END: Reason=" + reasonStr + ", Winner=" + winnerStr);
 
-  // Additional score data may be present
   if (payload.size() > 2) {
     debugPrint("GAME_END: Score data present (" +
                std::to_string(payload.size() - 2) + " bytes)");
@@ -203,7 +200,6 @@ void ProtocolHandlers::handleDebugInfo(const std::vector<uint8_t> &payload) {
 
   uint16_t msgLen = (payload[0] << 8) | payload[1];
 
-  // Fix: Use explicit size_t type for the sum to avoid sign comparison issues
   size_t requiredSize = static_cast<size_t>(2) + static_cast<size_t>(msgLen);
   if (payload.size() < requiredSize) {
     debugPrint("DEBUG_INFO: Not enough data");
@@ -215,15 +211,13 @@ void ProtocolHandlers::handleDebugInfo(const std::vector<uint8_t> &payload) {
 }
 
 void ProtocolHandlers::processCompleteMap() {
-  // Combine all chunks into a single data array
   std::vector<uint8_t> completeMapData;
   for (const auto &chunk : mapChunks) {
     completeMapData.insert(completeMapData.end(), chunk.begin(), chunk.end());
   }
 
-  // Log the total size of the map data
-  debugPrint("Map data complete: " + std::to_string(completeMapData.size()) +
-             " bytes");
+  debugLogToFile("Map data complete: " +
+                 std::to_string(completeMapData.size()) + " bytes");
 
   // Determine map format (based on RFC section 6)
   // First, check if the data might be in binary format with width/height at the
@@ -237,8 +231,8 @@ void ProtocolHandlers::processCompleteMap() {
     if (completeMapData.size() >=
         static_cast<size_t>(4) +
             static_cast<size_t>(width) * static_cast<size_t>(height)) {
-      debugPrint("Binary map format detected: " + std::to_string(width) + "x" +
-                 std::to_string(height));
+      debugLogToFile("Binary map format detected: " + std::to_string(width) +
+                     "x" + std::to_string(height));
 
       // Set dimensions and store map data (excluding the 4-byte header)
       gameState_->setMapDimensions(width, height);
@@ -293,8 +287,8 @@ void ProtocolHandlers::processCompleteMap() {
     }
 
     if (height > 0 && width > 0) {
-      debugPrint("ASCII map format detected: " + std::to_string(width) + "x" +
-                 std::to_string(height));
+      debugLogToFile("ASCII map format detected: " + std::to_string(width) +
+                     "x" + std::to_string(height));
 
       // Set dimensions
       gameState_->setMapDimensions(width, height);
@@ -340,16 +334,14 @@ void ProtocolHandlers::processCompleteMap() {
     }
   }
 
-  // If we can't determine the format, use known constraints:
-  // We know the map is 10 rows high
   const uint16_t KNOWN_MAP_HEIGHT = 10;
   uint16_t width =
       static_cast<uint16_t>(completeMapData.size() / KNOWN_MAP_HEIGHT);
 
-  // If width calculation makes sense (divides evenly)
   if (completeMapData.size() % KNOWN_MAP_HEIGHT == 0) {
-    debugPrint("Using known map height constraint: " + std::to_string(width) +
-               "x" + std::to_string(KNOWN_MAP_HEIGHT));
+    debugLogToFile(
+        "Using known map height constraint: " + std::to_string(width) + "x" +
+        std::to_string(KNOWN_MAP_HEIGHT));
 
     gameState_->setMapDimensions(width, KNOWN_MAP_HEIGHT);
     gameState_->addMapChunk(completeMapData);
@@ -379,8 +371,8 @@ void ProtocolHandlers::processCompleteMap() {
     }
   }
 
-  debugPrint("Map format unknown, using best guess dimensions: " +
-             std::to_string(width) + "x" + std::to_string(height));
+  debugLogToFile("Map format unknown, using best guess dimensions: " +
+                 std::to_string(width) + "x" + std::to_string(height));
 
   gameState_->setMapDimensions(width, height);
   gameState_->addMapChunk(completeMapData);
@@ -389,6 +381,10 @@ void ProtocolHandlers::processCompleteMap() {
 }
 
 void ProtocolHandlers::debugPrint(const std::string &message) {
+  debug::print("Protocol", message, debugMode_);
+}
+
+void ProtocolHandlers::debugLogToFile(const std::string &message) {
   debug::logToFile("Protocol", message, debugMode_);
 }
 

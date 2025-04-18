@@ -9,16 +9,14 @@
 #ifndef CLIENT_NETWORK_NETWORK_HPP_
 #define CLIENT_NETWORK_NETWORK_HPP_
 
-#include "../debug/debug.hpp"
 #include "../gamestate.hpp"
 #include "../protocol.hpp"
 #include "protocol_handlers.hpp"
 #include <arpa/inet.h>
 #include <atomic>
-#include <iomanip>
 #include <memory>
 #include <netinet/in.h>
-#include <sstream>
+#include <poll.h>
 #include <string>
 #include <sys/socket.h>
 #include <thread>
@@ -84,6 +82,7 @@ private:
   int socket_;
   std::atomic<bool> running_;
   GameState *gameState_;
+  struct pollfd pfd_;
 
   // Thread
   std::thread networkThread_;

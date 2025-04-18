@@ -22,9 +22,7 @@ namespace graphics {
 Graphics::Graphics(GameState *gameState, bool debugMode)
     : window_(nullptr), gameState_(gameState), debugMode_(debugMode),
       running_(false), graphicsInitialized_(false),
-      onWindowClosedCallback_(nullptr) {
-  // Defer window creation to the run() method
-}
+      onWindowClosedCallback_(nullptr) {}
 
 Graphics::~Graphics() { stop(); }
 
@@ -41,7 +39,6 @@ bool Graphics::initializeWindow() {
 }
 
 bool Graphics::initializeResources() {
-  // Load font
   if (!font_.loadFromFile("assets/jetpack_font.ttf")) {
     try {
       if (!font_.loadFromFile("/usr/share/fonts/truetype/liberation/"
@@ -55,20 +52,19 @@ bool Graphics::initializeResources() {
     }
   }
 
-  // Initialize shapes
   playerShape_.setRadius(PLAYER_RADIUS);
   playerShape_.setFillColor(sf::Color::Green);
   playerShape_.setOrigin(PLAYER_RADIUS, PLAYER_RADIUS);
 
   wallShape_.setSize(sf::Vector2f(TILE_SIZE, TILE_SIZE));
-  wallShape_.setFillColor(sf::Color(128, 128, 128)); // Gray
+  wallShape_.setFillColor(sf::Color(128, 128, 128));
 
   coinShape_.setRadius(COIN_RADIUS);
   coinShape_.setFillColor(sf::Color::Yellow);
   coinShape_.setOrigin(COIN_RADIUS, COIN_RADIUS);
 
   electricShape_.setSize(sf::Vector2f(TILE_SIZE, TILE_SIZE));
-  electricShape_.setFillColor(sf::Color(255, 0, 255)); // Purple
+  electricShape_.setFillColor(sf::Color(255, 0, 255));
 
   return true;
 }
@@ -76,21 +72,17 @@ bool Graphics::initializeResources() {
 void Graphics::run() {
   running_ = true;
   graphicsThread_ = std::thread([this]() {
-    // Try to initialize graphics in the thread
     graphicsInitialized_ = initializeWindow();
 
     if (graphicsInitialized_) {
-      // Only initialize resources if window was created successfully
       initializeResources();
 
-      // Main render loop
       while (running_ && window_ && window_->isOpen()) {
         processEvents();
         update();
         render();
       }
 
-      // If the window was manually closed and a callback is defined, execute it
       if (!window_->isOpen() && onWindowClosedCallback_) {
         debug::print("Graphics",
                      "Window was closed, calling window closed callback",
@@ -100,7 +92,6 @@ void Graphics::run() {
     } else {
       std::cerr << "Graphics initialization failed - running in headless mode"
                 << std::endl;
-      // Keep the thread alive but do nothing
       while (running_) {
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
       }
@@ -132,10 +123,8 @@ void Graphics::processEvents() {
   sf::Event event;
   while (window_->pollEvent(event)) {
     if (event.type == sf::Event::Closed) {
-      debug::print("Graphics", "Window closed event received", debugMode_);
       window_->close();
       running_ = false;
-      // Call callback if defined
       if (onWindowClosedCallback_) {
         onWindowClosedCallback_();
       }
@@ -147,22 +136,19 @@ void Graphics::processEvents() {
   }
 }
 
-void Graphics::update() {
-  // Update is minimal since most game state is managed by the server
-}
+void Graphics::update() {}
 
 void Graphics::render() {
   if (!window_ || !window_->isOpen())
     return;
 
-  window_->clear(sf::Color(50, 50, 50)); // Dark gray background
+  window_->clear(sf::Color(50, 50, 50));
 
   if (gameState_->isConnected()) {
     renderMap();
     renderPlayers();
     renderUI();
   } else {
-    // Display connecting message
     sf::Text text;
     text.setFont(font_);
     text.setString("Connecting to server...");
@@ -189,21 +175,17 @@ void Graphics::renderMap() {
   auto [width, height] = gameState_->getMapDimensions();
 
   if (mapData.empty() || width == 0 || height == 0) {
-    // Map not received yet
     return;
   }
 
-  // Calculate view scaling to fit the map
   float viewWidth = window_->getSize().x;
   float viewHeight = window_->getSize().y;
   float mapWidth = width * TILE_SIZE;
   float mapHeight = height * TILE_SIZE;
 
-  // Camera offset to center the map
   float offsetX = (viewWidth - mapWidth) / 2;
   float offsetY = (viewHeight - mapHeight) / 2;
 
-  // Render map elements
   for (uint16_t y = 0; y < height; y++) {
     for (uint16_t x = 0; x < width; x++) {
       uint16_t index = y * width + x;
@@ -230,7 +212,7 @@ void Graphics::renderMap() {
         window_->draw(electricShape_);
         break;
 
-      default: // EMPTY or unknown
+      default:
         break;
       }
     }
@@ -248,36 +230,32 @@ void Graphics::renderPlayers() {
     return;
   }
 
-  // Calculate view scaling
   float viewWidth = window_->getSize().x;
   float viewHeight = window_->getSize().y;
+
+  width = height * viewWidth / viewHeight;
   float mapWidth = width * TILE_SIZE;
   float mapHeight = height * TILE_SIZE;
 
-  // Camera offset to center the map
   float offsetX = (viewWidth - mapWidth) / 2;
   float offsetY = (viewHeight - mapHeight) / 2;
 
-  // Render each player
   for (const auto &player : players) {
     if (player.alive == 0)
-      continue; // Skip dead players
+      continue;
 
-    // Convert player coordinates to screen coordinates
     float screenX = offsetX + player.posX * TILE_SIZE / 100.0f;
     float screenY = offsetY + player.posY * TILE_SIZE / 100.0f;
 
-    // Set player color - our player is green, others are different colors
     if (player.id == gameState_->getAssignedId()) {
       playerShape_.setFillColor(sf::Color::Green);
     } else {
-      playerShape_.setFillColor(sf::Color(255, 128, 0)); // Orange
+      playerShape_.setFillColor(sf::Color(255, 128, 0));
     }
 
     playerShape_.setPosition(screenX, screenY);
     window_->draw(playerShape_);
 
-    // Draw player ID and score
     sf::Text idText;
     idText.setFont(font_);
     idText.setString(std::to_string(player.id));
@@ -300,7 +278,6 @@ void Graphics::renderUI() {
   if (!window_)
     return;
 
-  // Render game status at the top of the screen
   sf::Text statusText;
   statusText.setFont(font_);
 
@@ -328,7 +305,6 @@ void Graphics::renderUI() {
   statusText.setPosition(10, 10);
   window_->draw(statusText);
 
-  // Show control info at the bottom
   sf::Text controlsText;
   controlsText.setFont(font_);
   controlsText.setString("Controls: Left/Right Arrows, Space = Jetpack");

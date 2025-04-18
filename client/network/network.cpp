@@ -7,12 +7,14 @@
 */
 
 #include "network.hpp"
-#include <algorithm>
+#include "../debug/debug.hpp"
 #include <arpa/inet.h>
 #include <chrono>
 #include <cstring>
+#include <iomanip>
 #include <iostream>
 #include <netdb.h>
+#include <sstream>
 #include <thread>
 
 namespace jetpack {
@@ -22,8 +24,11 @@ Network::Network(const std::string &host, int port, bool debugMode,
                  GameState *gameState)
     : host_(host), port_(port), debugMode_(debugMode), socket_(-1),
       running_(false), gameState_(gameState) {
-  // Initialize protocol handlers
   protocolHandlers_ = std::make_unique<ProtocolHandlers>(gameState, debugMode);
+
+  pfd_.fd = -1;
+  pfd_.events = POLLIN;
+  pfd_.revents = 0;
 }
 
 Network::~Network() {
@@ -38,7 +43,6 @@ bool Network::connect() {
   struct sockaddr_in server_addr;
   struct hostent *server;
 
-  // Create socket
   socket_ = socket(AF_INET, SOCK_STREAM, 0);
   if (socket_ < 0) {
     std::cerr << "Error creating socket" << std::endl;
@@ -47,7 +51,6 @@ bool Network::connect() {
 
   debug::logToFile("Network", "Socket created", debugMode_);
 
-  // Get server by hostname
   server = gethostbyname(host_.c_str());
   if (server == nullptr) {
     std::cerr << "Error: No such host" << std::endl;
@@ -58,13 +61,11 @@ bool Network::connect() {
 
   debug::logToFile("Network", "Hostname resolved", debugMode_);
 
-  // Set up server address
   memset(&server_addr, 0, sizeof(server_addr));
   server_addr.sin_family = AF_INET;
   memcpy(&server_addr.sin_addr.s_addr, server->h_addr, server->h_length);
   server_addr.sin_port = htons(port_);
 
-  // Connect to server
   debug::logToFile("Network",
                    "Connecting to " + host_ + ":" + std::to_string(port_),
                    debugMode_);
@@ -78,9 +79,11 @@ bool Network::connect() {
 
   debug::logToFile("Network", "Connected successfully", debugMode_);
 
-  // Send CLIENT_CONNECT packet per RFC protocol
+  pfd_.fd = socket_;
+  pfd_.events = POLLIN;
+
   std::vector<uint8_t> payload;
-  uint8_t reqPlayerID = 0; // Let server assign ID
+  uint8_t reqPlayerID = 0;
   uint8_t nameLen = 5;
   const char *name = "Guest";
 
@@ -103,7 +106,6 @@ bool Network::connect() {
 
 void Network::disconnect() {
   if (socket_ >= 0) {
-    // Send CLIENT_DISCONNECT packet
     debug::logToFile("Network", "Sending CLIENT_DISCONNECT", debugMode_);
     sendPacket(protocol::CLIENT_DISCONNECT, {});
     close(socket_);
@@ -127,39 +129,52 @@ void Network::run() {
     debug::logToFile("Network", "Network thread started", debugMode_);
 
     while (running_) {
-      // Receive packet from server
-      if (receivePacket(&header, &payload)) {
-        // Cast the uint8_t type field to the enum for proper handling
-        protocol::PacketType packetType =
-            static_cast<protocol::PacketType>(header.type);
-        switch (packetType) {
-        case protocol::SERVER_WELCOME:
-          protocolHandlers_->handleServerWelcome(payload);
+      int pollResult = poll(&pfd_, 1, 50); // Timeout de 50ms
+
+      if (pollResult < 0) {
+        debug::logToFile("Network",
+                         "Error in poll(): " + std::string(strerror(errno)),
+                         debugMode_);
+        break;
+      } else if (pollResult > 0) {
+        if (pfd_.revents & POLLIN) {
+          if (receivePacket(&header, &payload)) {
+            protocol::PacketType packetType =
+                static_cast<protocol::PacketType>(header.type);
+            switch (packetType) {
+            case protocol::SERVER_WELCOME:
+              protocolHandlers_->handleServerWelcome(payload);
+              break;
+            case protocol::MAP_CHUNK:
+              protocolHandlers_->handleMapChunk(payload);
+              break;
+            case protocol::GAME_START:
+              protocolHandlers_->handleGameStart(payload);
+              break;
+            case protocol::GAME_STATE:
+              protocolHandlers_->handleGameState(payload);
+              break;
+            case protocol::GAME_END:
+              protocolHandlers_->handleGameEnd(payload);
+              break;
+            case protocol::DEBUG_INFO:
+              protocolHandlers_->handleDebugInfo(payload);
+              break;
+            default:
+              debug::print("Network",
+                           "Received unknown packet type: " +
+                               std::to_string(header.type),
+                           debugMode_);
+            }
+          }
+        }
+        if (pfd_.revents & (POLLHUP | POLLERR)) {
+          debug::logToFile("Network", "Socket error or disconnect detected",
+                           debugMode_);
           break;
-        case protocol::MAP_CHUNK:
-          protocolHandlers_->handleMapChunk(payload);
-          break;
-        case protocol::GAME_START:
-          protocolHandlers_->handleGameStart(payload);
-          break;
-        case protocol::GAME_STATE:
-          protocolHandlers_->handleGameState(payload);
-          break;
-        case protocol::GAME_END:
-          protocolHandlers_->handleGameEnd(payload);
-          break;
-        case protocol::DEBUG_INFO:
-          protocolHandlers_->handleDebugInfo(payload);
-          break;
-        default:
-          debug::print("Network",
-                       "Received unknown packet type: " +
-                           std::to_string(header.type),
-                       debugMode_);
         }
       }
 
-      // Send player input if game is running
       auto now = std::chrono::steady_clock::now();
       if (gameState_->isGameRunning() &&
           std::chrono::duration_cast<std::chrono::milliseconds>(now -
@@ -170,11 +185,7 @@ void Network::run() {
         lastInputTime = now;
       }
 
-      // Check connection health periodically
       checkConnectionHealth();
-
-      // Sleep to avoid busy waiting
-      std::this_thread::sleep_for(std::chrono::milliseconds(5));
     }
 
     debug::logToFile("Network", "Network thread exiting", debugMode_);
@@ -200,17 +211,21 @@ bool Network::sendPacket(protocol::PacketType type,
   header.type = type;
   header.length = htons(payload.size() + sizeof(header));
 
-  // Send header
-  if (send(socket_, &header, sizeof(header), 0) != sizeof(header)) {
-    debug::logToFile("Network", "Failed to send packet header", debugMode_);
+  if (write(socket_, &header, sizeof(header)) != sizeof(header)) {
+    debug::logToFile("Network",
+                     "Failed to send packet header: " +
+                         std::string(strerror(errno)),
+                     debugMode_);
     return false;
   }
 
-  // Send payload if any
   if (!payload.empty()) {
-    if (send(socket_, payload.data(), payload.size(), 0) !=
+    if (write(socket_, payload.data(), payload.size()) !=
         static_cast<ssize_t>(payload.size())) {
-      debug::logToFile("Network", "Failed to send packet payload", debugMode_);
+      debug::logToFile("Network",
+                       "Failed to send packet payload: " +
+                           std::string(strerror(errno)),
+                       debugMode_);
       return false;
     }
   }
@@ -235,20 +250,18 @@ bool Network::receivePacket(protocol::PacketHeader *header,
   if (socket_ < 0)
     return false;
 
-  // Receive header
-  ssize_t bytesRead = recv(socket_, header, sizeof(*header), 0);
+  ssize_t bytesRead = read(socket_, header, sizeof(*header));
   if (bytesRead != sizeof(*header)) {
     if (bytesRead == 0) {
       debug::logToFile("Network", "Server closed connection", debugMode_);
     } else if (bytesRead < 0) {
-      debug::logToFile(
-          "Network", "Error receiving header: " + std::string(strerror(errno)),
-          debugMode_);
+      debug::logToFile("Network",
+                       "Error reading header: " + std::string(strerror(errno)),
+                       debugMode_);
     }
     return false;
   }
 
-  // Check magic byte
   if (header->magic != protocol::MAGIC_BYTE) {
     debug::logToFile("Network",
                      "Invalid magic byte: 0x" + toHexString(header->magic),
@@ -256,7 +269,6 @@ bool Network::receivePacket(protocol::PacketHeader *header,
     return false;
   }
 
-  // Get packet length
   uint16_t packetLength = ntohs(header->length);
   if (packetLength < sizeof(*header)) {
     debug::logToFile("Network",
@@ -265,21 +277,21 @@ bool Network::receivePacket(protocol::PacketHeader *header,
     return false;
   }
 
-  // Compute payload length
   uint16_t payloadLength = packetLength - sizeof(*header);
 
   if (payloadLength > 0) {
-    // Resize payload vector
     payload->resize(payloadLength);
 
-    // Receive payload
-    bytesRead = recv(socket_, payload->data(), payloadLength, 0);
+    bytesRead = read(socket_, payload->data(), payloadLength);
     if (bytesRead != static_cast<ssize_t>(payloadLength)) {
-      debug::logToFile("Network", "Failed to receive full payload", debugMode_);
+      debug::logToFile("Network",
+                       "Failed to receive full payload: expected " +
+                           std::to_string(payloadLength) + " bytes, got " +
+                           std::to_string(bytesRead),
+                       debugMode_);
       return false;
     }
   } else {
-    // No payload
     payload->clear();
   }
 
@@ -293,7 +305,7 @@ bool Network::receivePacket(protocol::PacketHeader *header,
     if (!payload->empty() && payload->size() <= 64) {
       ss << "\nPayload: " << debug::formatHexDump(*payload);
     }
-    debug::logToFile("Network", ss.str(), true);
+    debug::print("Network", ss.str(), true);
   }
 
   return true;
@@ -333,22 +345,17 @@ bool Network::sendDebugMessage(const std::string &message) {
   uint16_t msgLen = static_cast<uint16_t>(message.length());
   uint16_t msgLenNet = htons(msgLen);
 
-  // Add length bytes
   uint8_t *lenBytes = reinterpret_cast<uint8_t *>(&msgLenNet);
   payload.push_back(lenBytes[0]);
   payload.push_back(lenBytes[1]);
 
-  // Add message bytes
   payload.insert(payload.end(), message.begin(), message.end());
 
   return sendPacket(protocol::DEBUG_INFO, payload);
 }
 
-void Network::checkConnectionHealth() {
-  // Could implement ping mechanism in the future
-}
+void Network::checkConnectionHealth() {}
 
-// Helper function to convert packet type to string for debugging
 std::string Network::packetTypeToString(protocol::PacketType type) {
   switch (type) {
   case protocol::CLIENT_CONNECT:
@@ -374,7 +381,6 @@ std::string Network::packetTypeToString(protocol::PacketType type) {
   }
 }
 
-// Helper function to format byte as hex string
 std::string Network::toHexString(uint8_t byte) {
   std::stringstream ss;
   ss << std::hex << std::setfill('0') << std::setw(2) << static_cast<int>(byte);

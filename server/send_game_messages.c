@@ -35,7 +35,7 @@ void send_game_state(server_t *server, int client_fd)
     for (int i = 0; i < server->client_count; i++) {
         client = server->client[i];
         write_data_state_payload(buffer, client, offset, i);
-        offset += 9;
+        offset += 8;
     }
     if (!send_with_write(client_fd, buffer, total_msg_size))
         perror("send_with_write GAME_STATE");

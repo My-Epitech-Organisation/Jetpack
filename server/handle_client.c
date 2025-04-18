@@ -11,6 +11,9 @@ void accept_client(server_t *server)
 {
     client_t *new_client = malloc(sizeof(client_t));
 
+    if (!new_client)
+        handle_error("malloc");
+    memset(new_client, 0, sizeof(client_t));
     new_client->addr_len = sizeof(new_client->addr);
     new_client->fd = accept(server->fd, (struct sockaddr *) &new_client->addr,
         &new_client->addr_len);
@@ -19,6 +22,14 @@ void accept_client(server_t *server)
         free(new_client);
         return;
     }
+    new_client->score = 0;
+    new_client->is_alive = true;
+    new_client->x = server->start_x * 100;
+    new_client->y = server->start_y * 100;
+    new_client->input_left = false;
+    new_client->input_right = false;
+    new_client->input_jetpack = false;
+
     server->client = realloc(server->client,
         (server->client_count + 1) * sizeof(client_t *));
     server->client[server->client_count] = new_client;
