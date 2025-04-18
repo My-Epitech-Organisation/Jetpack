@@ -250,6 +250,8 @@ void Graphics::renderPlayers() {
   // Calculate view scaling
   float viewWidth = window_->getSize().x;
   float viewHeight = window_->getSize().y;
+
+  width = height * viewWidth / viewHeight;
   float mapWidth = width * TILE_SIZE;
   float mapHeight = height * TILE_SIZE;
 
