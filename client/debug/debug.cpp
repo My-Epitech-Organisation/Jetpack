@@ -82,7 +82,7 @@ void print(const std::string &component, const std::string &message,
 
     // Print to console
     std::cout << "[" << timestamp << "][" << component << "] " << message
-              << std::endl;
+              << std::endl << std::flush;
 
     // Also log to file if logging is enabled
     if (loggingEnabled && logFile.is_open()) {
@@ -101,6 +101,10 @@ void logToFile(const std::string &component, const std::string &message,
     logFile << "[" << getTimestamp() << "][" << component << "] " << message
             << std::endl;
     logFile.flush();
+    
+    // Also print to console with debug mode on
+    std::cout << "[" << getTimestamp() << "][" << component << "] " << message
+              << std::endl << std::flush;
   }
 }
 
