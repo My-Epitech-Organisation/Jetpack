@@ -16,7 +16,7 @@ void print_packet_hex(const unsigned char *header,
         printf("%02x ", header[i]);
     for (size_t i = 0; i < payload_len; i++)
         printf("%02x%s", payload[i], i == payload_len - 1 ? "" : " ");
-    printf("\n");
+    printf("\n\n");
 }
 
 void print_debug_info_connection(server_t *server, char *context)
@@ -33,7 +33,7 @@ void print_debug_info_connection(server_t *server, char *context)
     fflush(stdout);
 }
 
-void print_debug_info_package(server_t *server, char *context,
+void print_debug_info_package_received(server_t *server, char *context,
     uint16_t payload_length)
 {
     time_t now = time(NULL);
@@ -48,6 +48,19 @@ void print_debug_info_package(server_t *server, char *context,
     fflush(stdout);
 }
 
+void print_debug_info_package_sent(const char *context,
+    const char *type_name, const unsigned char *packet, size_t packet_size)
+{
+    time_t now = time(NULL);
+    struct tm *tm_info = localtime(&now);
+    char time_buf[9];
+
+    strftime(time_buf, sizeof(time_buf), "%H:%M:%S", tm_info);
+    printf("[%s][%s] Sent packet: type=0x%02X (%s), length=%zu bytes\n",
+        time_buf, context, packet[1], type_name, packet_size);
+    print_packet_hex(packet, packet + 4, packet_size - 4);
+}
+
 void print_debug_all(server_t *server, char *context, char *payload,
     unsigned char *header)
 {
@@ -56,7 +69,7 @@ void print_debug_all(server_t *server, char *context, char *payload,
     if (!server->debug_mode)
         return;
     payload_length = ntohs(*(uint16_t *)(header + 2));
-    print_debug_info_package(server, context, payload_length);
+    print_debug_info_package_received(server, context, payload_length);
     print_packet_hex(header, (unsigned char *)payload,
         payload_length - 4);
 }

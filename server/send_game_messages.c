@@ -16,6 +16,8 @@ void send_game_start(server_t *server, int client_fd)
     write_start_payload(buffer, server);
     if (!send_with_write(client_fd, buffer, sizeof(buffer)))
         perror("send_with_write GAME_START");
+    print_debug_info_package_sent("Server", get_type_string_prev(buffer[1]),
+        buffer, sizeof(buffer));
 }
 
 void send_game_state(server_t *server, int client_fd)
@@ -25,7 +27,6 @@ void send_game_state(server_t *server, int client_fd)
     uint16_t total_msg_size = 4 + total_payload_size;
     uint8_t *buffer = malloc(total_msg_size);
     size_t offset;
-    client_t *client;
 
     if (!buffer)
         handle_error("malloc");
@@ -33,12 +34,13 @@ void send_game_state(server_t *server, int client_fd)
     write_state_payload(buffer, server, server->client_count);
     offset = 9;
     for (int i = 0; i < server->client_count; i++) {
-        client = server->client[i];
-        write_data_state_payload(buffer, client, offset, i);
+        write_data_state_payload(buffer, server->client[i], offset, i);
         offset += 8;
     }
     if (!send_with_write(client_fd, buffer, total_msg_size))
         perror("send_with_write GAME_STATE");
+    print_debug_info_package_sent("Server", get_type_string_prev(buffer[1]),
+        buffer, sizeof(buffer));
     free(buffer);
 }
 

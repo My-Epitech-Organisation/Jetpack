@@ -124,8 +124,10 @@ void game_loop(server_t *server);
 char *get_type_string_prev(uint8_t type);
 
 // Debugging functions
-void print_debug_info_package(server_t *server, char *context,
+void print_debug_info_package_received(server_t *server, char *context,
     uint16_t payload_length);
+void print_debug_info_package_sent(const char *context,
+    const char *type_name, const unsigned char *packet, size_t packet_size);
 void print_packet_hex(const unsigned char *header,
     const unsigned char *payload, size_t payload_len);
 void print_debug_info_connection(server_t *server, char *context);
