@@ -61,6 +61,7 @@ void ProtocolHandlers::handleMapChunk(const std::vector<uint8_t> &payload) {
                  ", Count=" + std::to_string(chunkCount) +
                  ", Size=" + std::to_string(payload.size() - 4) + " bytes");
 
+  // On first chunk, initialize our storage
   if (chunkIndex == 0) {
     mapChunks.clear();
     mapChunks.resize(chunkCount);
@@ -75,6 +76,7 @@ void ProtocolHandlers::handleMapChunk(const std::vector<uint8_t> &payload) {
     return;
   }
 
+  // Store the chunk data (excluding the 4-byte header)
   std::vector<uint8_t> chunkData(payload.begin() + 4, payload.end());
   mapChunks[chunkIndex] = chunkData;
   receivedChunkCount++;
@@ -211,173 +213,75 @@ void ProtocolHandlers::handleDebugInfo(const std::vector<uint8_t> &payload) {
 }
 
 void ProtocolHandlers::processCompleteMap() {
-  std::vector<uint8_t> completeMapData;
-  for (const auto &chunk : mapChunks) {
-    completeMapData.insert(completeMapData.end(), chunk.begin(), chunk.end());
-  }
-
-  debugLogToFile("Map data complete: " +
-                 std::to_string(completeMapData.size()) + " bytes");
-
-  // Determine map format (based on RFC section 6)
-  // First, check if the data might be in binary format with width/height at the
-  // beginning
-  if (completeMapData.size() >= 4) {
-    // Try to extract width and height from the first 4 bytes
-    uint16_t width = (completeMapData[0] << 8) | completeMapData[1];
-    uint16_t height = (completeMapData[2] << 8) | completeMapData[3];
-
-    // Check if dimensions make sense (more data follows after width/height)
-    if (completeMapData.size() >=
-        static_cast<size_t>(4) +
-            static_cast<size_t>(width) * static_cast<size_t>(height)) {
-      debugLogToFile("Binary map format detected: " + std::to_string(width) +
-                     "x" + std::to_string(height));
-
-      // Set dimensions and store map data (excluding the 4-byte header)
-      gameState_->setMapDimensions(width, height);
-
-      // Add only the map tile data (skip the dimensions)
-      std::vector<uint8_t> mapTiles(completeMapData.begin() + 4,
-                                    completeMapData.begin() + 4 +
-                                        (width * height));
-      gameState_->addMapChunk(mapTiles);
-
-      mapComplete = true;
-      return;
-    }
-  }
-
-  // If binary format detection failed, try ASCII format
-  // In ASCII format, each line is typically a row in the map
-  // We'll count newlines to determine height, and the longest line for width
-
-  // First, check if we have ASCII data (look for printable chars and newlines)
-  bool isAscii = true;
-  for (auto byte : completeMapData) {
-    // Check for non-printable, non-whitespace characters
-    if (byte != '\n' && byte != '\r' && (byte < 32 || byte > 126)) {
-      isAscii = false;
-      break;
-    }
-  }
-
-  if (isAscii) {
-    // Convert to string for easier line processing
-    std::string mapStr(completeMapData.begin(), completeMapData.end());
-    std::vector<std::string> lines;
-
-    // Split into lines
-    size_t pos = 0;
-    size_t prev = 0;
-    while ((pos = mapStr.find('\n', prev)) != std::string::npos) {
-      lines.push_back(mapStr.substr(prev, pos - prev));
-      prev = pos + 1;
-    }
-    // Add the last line if it exists
-    if (prev < mapStr.length()) {
-      lines.push_back(mapStr.substr(prev));
-    }
-
-    // Find the width (longest line) and height (number of lines)
-    uint16_t height = static_cast<uint16_t>(lines.size());
-    uint16_t width = 0;
-    for (const auto &line : lines) {
-      width = std::max(width, static_cast<uint16_t>(line.length()));
-    }
-
-    if (height > 0 && width > 0) {
-      debugLogToFile("ASCII map format detected: " + std::to_string(width) +
-                     "x" + std::to_string(height));
-
-      // Set dimensions
-      gameState_->setMapDimensions(width, height);
-
-      // Convert ASCII map to binary tile format
-      std::vector<uint8_t> mapTiles;
-      mapTiles.reserve(width * height);
-
-      for (const auto &line : lines) {
-        for (size_t i = 0; i < width; ++i) {
-          if (i < line.length()) {
-            // Convert ASCII characters to tile types
-            switch (line[i]) {
-            case '#':
-              mapTiles.push_back(protocol::WALL);
-              break;
-            case 'C':
-            case 'c':
-            case 'o':
-            case 'O':
-              mapTiles.push_back(protocol::COIN);
-              break;
-            case 'E':
-            case 'e':
-            case 'X':
-            case 'x':
-              mapTiles.push_back(protocol::ELECTRIC);
-              break;
-            default:
-              mapTiles.push_back(protocol::EMPTY);
-              break;
-            }
-          } else {
-            // Pad shorter lines with empty tiles
-            mapTiles.push_back(protocol::EMPTY);
-          }
-        }
-      }
-
-      gameState_->addMapChunk(mapTiles);
-      mapComplete = true;
-      return;
-    }
-  }
-
-  const uint16_t KNOWN_MAP_HEIGHT = 10;
-  uint16_t width =
-      static_cast<uint16_t>(completeMapData.size() / KNOWN_MAP_HEIGHT);
-
-  if (completeMapData.size() % KNOWN_MAP_HEIGHT == 0) {
-    debugLogToFile(
-        "Using known map height constraint: " + std::to_string(width) + "x" +
-        std::to_string(KNOWN_MAP_HEIGHT));
-
-    gameState_->setMapDimensions(width, KNOWN_MAP_HEIGHT);
-    gameState_->addMapChunk(completeMapData);
-
-    mapComplete = true;
+  // The server sends the map column by column
+  // Each column is a separate chunk
+  
+  uint16_t numColumns = static_cast<uint16_t>(mapChunks.size());
+  
+  // Check if we have valid chunks
+  if (numColumns == 0) {
+    debugPrint("processCompleteMap: No map chunks received");
     return;
   }
-
-  // Fallback to best guess if known height doesn't work
-  // Assume it's a square or reasonable rectangle
-  uint16_t size = static_cast<uint16_t>(std::sqrt(completeMapData.size()));
-  width = size;
-  uint16_t height = size;
-
-  // Try to find more suitable dimensions if not a perfect square
-  if (width * height != completeMapData.size()) {
-    // Look for a reasonable width that divides the total size
-    for (uint16_t w = 1; w <= static_cast<uint16_t>(completeMapData.size());
-         ++w) {
-      if (completeMapData.size() % w == 0) {
-        width = w;
-        height = static_cast<uint16_t>(completeMapData.size() / w);
-        // Stop if we found reasonable dimensions (width wider than height)
-        if (width >= height)
+  
+  // The height of the map is determined by the size of each chunk
+  uint16_t mapHeight = static_cast<uint16_t>(mapChunks[0].size());
+  
+  debugLogToFile("Processing map with dimensions: " + std::to_string(numColumns) + 
+                "x" + std::to_string(mapHeight));
+  
+  // First, set the map dimensions 
+  gameState_->setMapDimensions(numColumns, mapHeight);
+  
+  // Create a vector for the final map in row-major format
+  std::vector<uint8_t> finalMap(numColumns * mapHeight, protocol::EMPTY);
+  
+  // Process column by column (as received from server)
+  for (uint16_t col = 0; col < numColumns; col++) {
+    const auto& columnData = mapChunks[col];
+    
+    // Check if this column has the expected height
+    if (columnData.size() != mapHeight) {
+      debugPrint("WARNING: Column " + std::to_string(col) + 
+                " has unexpected size: " + std::to_string(columnData.size()) +
+                " (expected " + std::to_string(mapHeight) + ")");
+      continue;
+    }
+    
+    // Process each character in the column
+    for (uint16_t row = 0; row < mapHeight; row++) {
+      uint8_t tileValue = protocol::EMPTY; // Default to empty
+      char mapChar = static_cast<char>(columnData[row]);
+      
+      // Convert characters to tile types according to map format
+      switch (mapChar) {
+        case '#': // Wall
+          tileValue = protocol::WALL;
+          break;
+        case 'c': // Coin
+        case 'C':
+          tileValue = protocol::COIN;
+          break;
+        case 'e': // Electric
+        case 'E':
+          tileValue = protocol::ELECTRIC;
+          break;
+        case '_': // Empty
+        default:
+          tileValue = protocol::EMPTY;
           break;
       }
+      
+      // Store in row-major order
+      finalMap[row * numColumns + col] = tileValue;
     }
   }
-
-  debugLogToFile("Map format unknown, using best guess dimensions: " +
-                 std::to_string(width) + "x" + std::to_string(height));
-
-  gameState_->setMapDimensions(width, height);
-  gameState_->addMapChunk(completeMapData);
-
+  
+  // Store the final map in the game state
+  gameState_->setMapData(finalMap);
+  
   mapComplete = true;
+  debugLogToFile("Map processing completed successfully");
 }
 
 void ProtocolHandlers::debugPrint(const std::string &message) {

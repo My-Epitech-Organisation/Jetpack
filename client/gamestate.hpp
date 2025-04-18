@@ -30,6 +30,7 @@ public:
   void setJetpackActive(bool active);
   void setMapDimensions(uint16_t width, uint16_t height);
   void addMapChunk(const std::vector<uint8_t> &chunkData);
+  void setMapData(const std::vector<uint8_t> &mapData);
   void setPlayerStates(const std::vector<protocol::PlayerState> &states);
   void setCurrentTick(uint32_t tick);
   void setGameEnded(bool ended, uint8_t winnerId);
