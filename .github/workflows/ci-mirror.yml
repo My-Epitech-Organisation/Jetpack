@@ -40,7 +40,7 @@ jobs:
           chmod +x coding-style.sh
 
       - name: Run Coding Style Checker
-        run: ./coding-style.sh . reports
+        run: ./coding-style.sh . .
 
       - name: Check coding style result
         run: |
