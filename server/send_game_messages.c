@@ -11,14 +11,11 @@ void send_game_start(server_t *server, int client_fd)
 {
     uint8_t buffer[9];
     uint16_t length = 9;
-    ssize_t bytes_sent;
 
     write_header(buffer, GAME_START, length);
     write_start_payload(buffer, server);
-    bytes_sent = send(client_fd, buffer, sizeof(buffer), 0);
-    if (bytes_sent == -1) {
-        perror("send");
-    }
+    if (!send_with_write(client_fd, buffer, sizeof(buffer)))
+        perror("send_with_write GAME_START");
 }
 
 void send_game_state(server_t *server, int client_fd)
@@ -40,8 +37,8 @@ void send_game_state(server_t *server, int client_fd)
         write_data_state_payload(buffer, client, offset, i);
         offset += 9;
     }
-    if (send(client_fd, buffer, total_msg_size, 0) == -1)
-        perror("send GAME_STATE");
+    if (!send_with_write(client_fd, buffer, total_msg_size))
+        perror("send_with_write GAME_STATE");
     free(buffer);
 }
 

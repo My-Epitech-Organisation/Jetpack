@@ -116,6 +116,7 @@ void read_client(server_t *server, int i);
 void handle_input(server_t *server, int client_id, char *payload,
     uint16_t len);
 
+bool send_with_write(int fd, const void *buffer, size_t length);
 void parsing_launch(int argc, char **argv, server_t *server);
 void put_str_fd(int fd, char *str);
 void load_map(server_t *server);
