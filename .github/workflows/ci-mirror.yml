@@ -31,22 +31,28 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v3
 
-      - name: Create Reports Directory
-        run: mkdir -p reports
-
       - name: Download Coding Style Checker
         run: |
           curl -L https://raw.githubusercontent.com/Epitech/coding-style-checker/refs/heads/main/coding-style.sh -o coding-style.sh
           chmod +x coding-style.sh
 
-      - name: Run Coding Style Checker
-        run: ./coding-style.sh . reports
+      - name: Check coding style result
+        run: |
+          # Run the coding style checker and capture the output
+          ./coding-style.sh . . > result || true
+
+          # Check for coding style errors in the result file
+          if grep -Eq '[1-9][0-9]* coding style error\(s\) reported in ' result; then
+            echo "Coding style errors found."
+            exit 1
+          else
+            echo "No coding style error found."
+          fi
 
   mirror:
     name: Mirror to Epitech Repository
     needs: [build_and_test, coding_style]
-
-    if: ${{ github.repository != 'EpitechPromo2028/B-NWP-400-NAN-4-1-jetpack-santiago.pidcova' }}
+    if: ${{ success() }}
     runs-on: ubuntu-latest
     steps:
 
