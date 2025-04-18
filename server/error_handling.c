@@ -7,8 +7,10 @@
 
 #include "includes/server.h"
 
-void handle_error(char *msg)
+void handle_error(char *msg, server_t *server)
 {
+    send_disconnect(server);
+    close_everything(server);
     perror(msg);
     exit(EXIT_FAILURE);
 }

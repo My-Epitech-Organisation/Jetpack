@@ -29,7 +29,7 @@ void send_game_state(server_t *server, int client_fd)
     size_t offset;
 
     if (!buffer)
-        handle_error("malloc");
+        handle_error("malloc", server);
     write_header(buffer, GAME_STATE, total_msg_size);
     write_state_payload(buffer, server, server->client_count);
     offset = 9;
