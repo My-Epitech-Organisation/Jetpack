@@ -20,8 +20,7 @@ static void close_and_free(FILE *file, char *line)
 
 void get_map_size(server_t *server, size_t *rows, size_t *cols)
 {
-    const char *path = server->map_path;
-    FILE *file = fopen(path, "r");
+    FILE *file = fopen(server->map_path, "r");
     size_t row_count = 0;
     size_t col_count = 0;
     char *line = NULL;

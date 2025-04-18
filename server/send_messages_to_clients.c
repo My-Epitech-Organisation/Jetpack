@@ -57,11 +57,11 @@ void send_disconnect(server_t *server)
     write_header(buffer, CLIENT_DISCONNECT, length);
     buffer[4] = 0;
     for (int i = 0; i < server->client_count; i++) {
-        if (server->client[i] != NULL) {
-            if (!send_with_write(server->client[i]->fd, buffer, sizeof(buffer)))
-                handle_error("send_with_write CLIENT_DISCONNECT", server);
-            print_debug_info_package_sent("Server",
-                get_type_string_prev(buffer[1]), buffer, sizeof(buffer));
-        }
+        if (server->client[i] == NULL)
+            continue;
+        if (!send_with_write(server->client[i]->fd, buffer, sizeof(buffer)))
+            handle_error("send_with_write CLIENT_DISCONNECT", server);
+        print_debug_info_package_sent("Server",
+            get_type_string_prev(buffer[1]), buffer, sizeof(buffer));
     }
 }
