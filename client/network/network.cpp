@@ -23,8 +23,8 @@ namespace network {
 Network::Network(const std::string &host, int port, bool debugMode,
                  GameState *gameState)
     : host_(host), port_(port), debugMode_(debugMode), socket_(-1),
-      running_(false), gameState_(gameState) {
-  protocolHandlers_ = std::make_unique<ProtocolHandlers>(gameState, debugMode);
+      running_(false), gameState_(gameState), 
+      protocolHandlers_(gameState, debugMode) {
 
   pfd_.fd = -1;
   pfd_.events = POLLIN;
@@ -143,22 +143,22 @@ void Network::run() {
                 static_cast<protocol::PacketType>(header.type);
             switch (packetType) {
             case protocol::SERVER_WELCOME:
-              protocolHandlers_->handleServerWelcome(payload);
+              protocolHandlers_.handleServerWelcome(payload);
               break;
             case protocol::MAP_CHUNK:
-              protocolHandlers_->handleMapChunk(payload);
+              protocolHandlers_.handleMapChunk(payload);
               break;
             case protocol::GAME_START:
-              protocolHandlers_->handleGameStart(payload);
+              protocolHandlers_.handleGameStart(payload);
               break;
             case protocol::GAME_STATE:
-              protocolHandlers_->handleGameState(payload);
+              protocolHandlers_.handleGameState(payload);
               break;
             case protocol::GAME_END:
-              protocolHandlers_->handleGameEnd(payload);
+              protocolHandlers_.handleGameEnd(payload);
               break;
             case protocol::DEBUG_INFO:
-              protocolHandlers_->handleDebugInfo(payload);
+              protocolHandlers_.handleDebugInfo(payload);
               break;
             default:
               debug::print("Network",

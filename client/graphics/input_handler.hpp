@@ -1,5 +1,3 @@
-// filepath:
-// /home/psalmon/Documents/Sem4/Jetpack/Jetpack/client/graphics/input_handler.hpp
 // Copyright 2025 paul-antoine.salmon@epitech.eu
 /*
 ** EPITECH PROJECT, 2025

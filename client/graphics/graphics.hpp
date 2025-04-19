@@ -1,4 +1,10 @@
 // Copyright 2025 paul-antoine.salmon@epitech.eu
+/*
+** EPITECH PROJECT, 2025
+** Jetpack
+** File description:
+** Graphics system for Jetpack client
+*/
 
 #ifndef CLIENT_GRAPHICS_GRAPHICS_HPP_
 #define CLIENT_GRAPHICS_GRAPHICS_HPP_

@@ -1,5 +1,3 @@
-// filepath:
-// /home/psalmon/Documents/Sem4/Jetpack/Jetpack/client/graphics/renderer.hpp
 // Copyright 2025 paul-antoine.salmon@epitech.eu
 /*
 ** EPITECH PROJECT, 2025
@@ -26,7 +24,7 @@ public:
   void render(sf::RenderWindow *window);
 
 private:
-  // Data
+  // Core data
   GameState *gameState_;
   bool debugMode_;
   sf::Font *font_; // Pointer to the font used for rendering text
