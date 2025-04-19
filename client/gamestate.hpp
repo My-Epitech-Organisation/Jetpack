@@ -19,17 +19,18 @@ namespace jetpack {
 class GameState {
 public:
   GameState()
-      : connected(false), assignedId(0), gameRunning(false), inputMask(0),
-        mapWidth(0), mapHeight(0), currentTick(0), gameEnded(false),
-        winnerId(0xFF) {}
+      : connected(false), assignedId(0), gameRunning(false),
+        jetpackActive(false), mapWidth(0), mapHeight(0), currentTick(0),
+        gameEnded(false), winnerId(0xFF) {}
 
   // Thread-safe setters
   void setConnected(bool status);
   void setAssignedId(uint8_t id);
   void setGameRunning(bool running);
-  void setInputMask(uint8_t mask);
+  void setJetpackActive(bool active);
   void setMapDimensions(uint16_t width, uint16_t height);
   void addMapChunk(const std::vector<uint8_t> &chunkData);
+  void setMapData(const std::vector<uint8_t> &mapData);
   void setPlayerStates(const std::vector<protocol::PlayerState> &states);
   void setCurrentTick(uint32_t tick);
   void setGameEnded(bool ended, uint8_t winnerId);
@@ -38,7 +39,7 @@ public:
   bool isConnected() const;
   uint8_t getAssignedId() const;
   bool isGameRunning() const;
-  uint8_t getInputMask() const;
+  bool isJetpackActive() const;
   std::pair<uint16_t, uint16_t> getMapDimensions() const;
   std::vector<uint8_t> getMapData() const;
   std::vector<protocol::PlayerState> getPlayerStates() const;
@@ -51,7 +52,7 @@ private:
   std::atomic<bool> connected;
   uint8_t assignedId;
   std::atomic<bool> gameRunning;
-  uint8_t inputMask;
+  bool jetpackActive;
 
   // Map data
   uint16_t mapWidth;

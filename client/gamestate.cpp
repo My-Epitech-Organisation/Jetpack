@@ -19,9 +19,9 @@ void GameState::setAssignedId(uint8_t id) {
 
 void GameState::setGameRunning(bool running) { gameRunning = running; }
 
-void GameState::setInputMask(uint8_t mask) {
+void GameState::setJetpackActive(bool active) {
   std::lock_guard<std::mutex> lock(mutex_);
-  inputMask = mask;
+  jetpackActive = active;
 }
 
 void GameState::setMapDimensions(uint16_t width, uint16_t height) {
@@ -34,6 +34,11 @@ void GameState::setMapDimensions(uint16_t width, uint16_t height) {
 void GameState::addMapChunk(const std::vector<uint8_t> &chunkData) {
   std::lock_guard<std::mutex> lock(mutex_);
   mapData.insert(mapData.end(), chunkData.begin(), chunkData.end());
+}
+
+void GameState::setMapData(const std::vector<uint8_t> &data) {
+  std::lock_guard<std::mutex> lock(mutex_);
+  mapData = data;
 }
 
 void GameState::setPlayerStates(
@@ -62,9 +67,9 @@ uint8_t GameState::getAssignedId() const {
 
 bool GameState::isGameRunning() const { return gameRunning; }
 
-uint8_t GameState::getInputMask() const {
+bool GameState::isJetpackActive() const {
   std::lock_guard<std::mutex> lock(mutex_);
-  return inputMask;
+  return jetpackActive;
 }
 
 std::pair<uint16_t, uint16_t> GameState::getMapDimensions() const {
