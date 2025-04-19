@@ -36,6 +36,7 @@ private:
   sf::View uiView_;   // View for the UI elements
   const unsigned int virtualWidth_ = 800;
   const unsigned int virtualHeight_ = 600;
+  float cameraOffsetX_ = 0.0f; // Camera offset for scrolling
 
   // SFML shape objects
   sf::CircleShape playerShape_;      // Green circle
@@ -47,6 +48,8 @@ private:
   const float TILE_SIZE = 20.0f;
   const float PLAYER_RADIUS = 10.0f;
   const float COIN_RADIUS = 5.0f;
+  const float FIXED_PLAYER_X =
+      100.0f; // Position where player stops and world scrolls instead
 
   // Rendering methods
   void renderMap(sf::RenderWindow *window);
@@ -54,6 +57,9 @@ private:
   void renderUI(sf::RenderWindow *window, const sf::Font &font);
   void renderDebugInfo(sf::RenderWindow *window, const sf::Font &font);
   void renderConnectingMessage(sf::RenderWindow *window, const sf::Font &font);
+
+  // Helper method to update camera position based on player position
+  void updateCamera();
 };
 
 } // namespace graphics

@@ -13,7 +13,8 @@ namespace jetpack {
 namespace graphics {
 
 Renderer::Renderer(GameState *gameState, bool debugMode)
-    : gameState_(gameState), debugMode_(debugMode), font_(nullptr) {
+    : gameState_(gameState), debugMode_(debugMode), font_(nullptr),
+      cameraOffsetX_(0.0f) {
 
   // Initialize views with default virtual screen size
   gameView_.setSize(virtualWidth_, virtualHeight_);
@@ -54,6 +55,9 @@ void Renderer::render(sf::RenderWindow *window) {
   window->clear(sf::Color(50, 50, 50));
 
   if (gameState_->isConnected()) {
+    // Update camera position based on player's position
+    updateCamera();
+
     // Set the game view for world elements
     window->setView(gameView_);
     renderMap(window);
@@ -124,6 +128,12 @@ void Renderer::renderMap(sf::RenderWindow *window) {
 
 void Renderer::renderPlayers(sf::RenderWindow *window) {
   auto players = gameState_->getPlayerStates();
+  uint8_t currentPlayerId = gameState_->getAssignedId();
+
+  // Get map dimensions to calculate Y position ratio
+  std::pair<uint16_t, uint16_t> mapDimensions = gameState_->getMapDimensions();
+  uint16_t mapHeight = mapDimensions.second;
+  float mapTotalHeight = mapHeight * TILE_SIZE; // Total map height in pixels
 
   for (const auto &player : players) {
     // Skip rendering dead players
@@ -131,21 +141,27 @@ void Renderer::renderPlayers(sf::RenderWindow *window) {
       continue;
 
     // Determine the color based on player ID
-    sf::Color playerColor = (player.id == gameState_->getAssignedId())
-                                ? sf::Color::Green
-                                : sf::Color::Red;
+    sf::Color playerColor =
+        (player.id == currentPlayerId) ? sf::Color::Green : sf::Color::Red;
 
     playerShape_.setFillColor(playerColor);
-    playerShape_.setPosition(player.posX, player.posY);
+
+    // Adjust player position for display
+    float displayX = player.posX;
+
+    // Convert Y position from ratio (0-1000) to actual pixel position
+    float displayY = (player.posY / 1000.0f) * mapTotalHeight;
+
+    playerShape_.setPosition(displayX, displayY);
     window->draw(playerShape_);
 
-    // Render player score
+    // Render player score (also fixed at same position)
     sf::Text scoreText;
     scoreText.setFont(*font_);
     scoreText.setString(std::to_string(player.score));
     scoreText.setCharacterSize(12);
     scoreText.setFillColor(sf::Color::White);
-    scoreText.setPosition(player.posX - 5, player.posY - 25);
+    scoreText.setPosition(displayX - 5, displayY - 25);
     window->draw(scoreText);
   }
 }
@@ -264,6 +280,30 @@ void Renderer::handleResize(sf::RenderWindow *window, unsigned int width,
   // UI view always covers the full virtual size
   uiView_.setViewport(sf::FloatRect(viewX / width, viewY / height,
                                     viewWidth / width, viewHeight / height));
+}
+
+void Renderer::updateCamera() {
+  // Find the local player
+  auto players = gameState_->getPlayerStates();
+
+  for (const auto &player : players) {
+    if (player.id == gameState_->getAssignedId() && player.alive) {
+
+      // If player is beyond the fixed position, calculate camera offset
+      if (player.posX > FIXED_PLAYER_X) {
+        cameraOffsetX_ = player.posX - FIXED_PLAYER_X;
+
+        // Update the game view center (X based on offset, Y based on ratio)
+        gameView_.setCenter(virtualWidth_ / 2.0f + cameraOffsetX_,
+                            virtualHeight_ / 2.0f);
+      } else {
+        // Player is still in entry phase, reset camera
+        cameraOffsetX_ = 0.0f;
+        gameView_.setCenter(virtualWidth_ / 2.0f, virtualHeight_ / 2.0f);
+      }
+      break;
+    }
+  }
 }
 
 } // namespace graphics
