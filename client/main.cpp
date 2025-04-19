@@ -18,13 +18,14 @@
 #include <string>
 #include <thread>
 
-// Global pointers for signal handling
+// Global variables for the main application components
 jetpack::network::Network *g_network = nullptr;
 jetpack::graphics::Graphics *g_graphics = nullptr;
 bool g_debug_mode = false;
 std::atomic<bool> g_window_closed(false);
 
 void signal_handler(int signal) {
+  // Properly shut down the application when receiving termination signals
   jetpack::debug::print("Main",
                         "Received signal " + std::to_string(signal) +
                             ", shutting down...",
@@ -55,6 +56,7 @@ void print_usage(const char *program_name) {
 }
 
 void handle_window_closed() {
+  // Callback triggered when window is closed to initiate shutdown
   jetpack::debug::print("Main",
                         "Window closed callback triggered, initiating shutdown",
                         g_debug_mode);
@@ -66,6 +68,7 @@ int main(int argc, char *argv[]) {
   int port = 0;
   bool debug_mode = false;
 
+  // Parse command line arguments
   for (int i = 1; i < argc; i++) {
     std::string arg = argv[i];
 
@@ -115,10 +118,12 @@ int main(int argc, char *argv[]) {
     }
   }
 
+  // Set up signal handlers
   std::signal(SIGINT, signal_handler);
   std::signal(SIGTERM, signal_handler);
 
   try {
+    // Initialize core game components
     auto gameState = std::make_unique<jetpack::GameState>();
 
     auto network = std::make_unique<jetpack::network::Network>(
@@ -131,6 +136,7 @@ int main(int argc, char *argv[]) {
 
     graphics->setOnWindowClosedCallback(handle_window_closed);
 
+    // Connect to the server
     jetpack::debug::print("Main",
                           "Connecting to " + host + ":" + std::to_string(port),
                           debug_mode);
@@ -142,6 +148,7 @@ int main(int argc, char *argv[]) {
       return 1;
     }
 
+    // Start network and graphics systems
     network->run();
     graphics->run();
 
@@ -151,10 +158,12 @@ int main(int argc, char *argv[]) {
           "Main", "Network and graphics systems initialized", debug_mode);
     }
 
+    // Main application loop
     while (graphics->isRunning() && !g_window_closed) {
       std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
 
+    // Clean shutdown
     if (g_window_closed) {
       jetpack::debug::print("Main",
                             "Main window was closed, stopping network thread",
@@ -166,8 +175,6 @@ int main(int argc, char *argv[]) {
     }
 
     jetpack::debug::print("Main", "Client shutting down normally", debug_mode);
-    std::cout << "Client shut down successfully" << std::endl;
-
     jetpack::debug::shutdownLogging();
 
   } catch (const std::exception &e) {
