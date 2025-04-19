@@ -179,39 +179,13 @@ void Graphics::renderMap() {
     return;
   }
 
-  // Find the local player to determine the scroll position
-  const protocol::PlayerState *localPlayer = nullptr;
-  for (const auto &player : players) {
-    if (player.id == gameState_->getAssignedId() && player.alive != 0) {
-      localPlayer = &player;
-      break;
-    }
-  }
-
-  if (!localPlayer) {
-    return; // No local player found
-  }
-
   float viewWidth = window_->getSize().x;
-  float viewHeight = window_->getSize().y;
-  float mapWidth = width * TILE_SIZE;
-  float mapHeight = height * TILE_SIZE;
 
-  // Calculate camera offset based on player position
-  // The player stays fixed at FIXED_PLAYER_X_POS
-  float cameraOffsetX =
-      localPlayer->posX * TILE_SIZE / 100.0f - FIXED_PLAYER_X_POS;
+  // Scale map coordinates (x100)
+  float scaleFactor = 100.0f;
 
-  // Ensure the map doesn't scroll past its beginning
-  cameraOffsetX = std::max(0.0f, cameraOffsetX);
-
-  // Ensure the map doesn't scroll past its end if the map is wider than the
-  // screen
-  if (mapWidth > viewWidth) {
-    cameraOffsetX = std::min(cameraOffsetX, mapWidth - viewWidth);
-  }
-
-  float offsetY = (viewHeight - mapHeight) / 2;
+  // No camera offset, map stays fixed in place
+  float cameraOffsetX = 0.0f;
 
   for (uint16_t y = 0; y < height; y++) {
     for (uint16_t x = 0; x < width; x++) {
@@ -221,9 +195,9 @@ void Graphics::renderMap() {
 
       uint8_t tileType = mapData[index];
 
-      // Apply camera offset to x position
-      float posX = x * TILE_SIZE - cameraOffsetX;
-      float posY = offsetY + y * TILE_SIZE;
+      // Scale positions (multiply by 100)
+      float posX = x * scaleFactor - cameraOffsetX;
+      float posY = y * scaleFactor;
 
       // Only draw tiles that are visible on screen
       if (posX < -TILE_SIZE || posX > viewWidth)
@@ -258,55 +232,30 @@ void Graphics::renderPlayers() {
 
   auto players = gameState_->getPlayerStates();
   auto [width, height] = gameState_->getMapDimensions();
-
   if (players.empty() || width == 0 || height == 0) {
     return;
   }
 
-  // Find the local player to determine the scroll position
-  const protocol::PlayerState *localPlayer = nullptr;
-  for (const auto &player : players) {
-    if (player.id == gameState_->getAssignedId() && player.alive != 0) {
-      localPlayer = &player;
-      break;
-    }
-  }
-
-  if (!localPlayer) {
-    return; // No local player found
-  }
-
   float viewWidth = window_->getSize().x;
-  float viewHeight = window_->getSize().y;
-  float mapWidth = width * TILE_SIZE;
-  float mapHeight = height * TILE_SIZE;
-  float offsetY = (viewHeight - mapHeight) / 2;
-
-  // Calculate camera offset based on player position (same as in renderMap)
-  float cameraOffsetX =
-      localPlayer->posX * TILE_SIZE / 100.0f - FIXED_PLAYER_X_POS;
-  cameraOffsetX = std::max(0.0f, cameraOffsetX);
-  if (mapWidth > viewWidth) {
-    cameraOffsetX = std::min(cameraOffsetX, mapWidth - viewWidth);
-  }
 
   for (const auto &player : players) {
     if (player.alive == 0)
       continue;
 
-    float posX = player.posX * TILE_SIZE / 100.0f - cameraOffsetX;
-    float posY = offsetY + player.posY * TILE_SIZE / 100.0f;
+    // Use player coordinates directly without any camera offset
+    float posX = player.posX;
+    float posY = player.posY;
 
     // Only draw players that are visible on screen
     if (posX < -PLAYER_RADIUS || posX > viewWidth + PLAYER_RADIUS)
       continue;
 
-    // Local player always stays at the fixed horizontal position
+    // Set color based on player ID
     if (player.id == gameState_->getAssignedId()) {
       playerShape_.setFillColor(sf::Color::Green);
-      posX = FIXED_PLAYER_X_POS; // Keep local player at fixed position
     } else {
-      playerShape_.setFillColor(sf::Color(255, 128, 0));
+      playerShape_.setFillColor(
+          sf::Color(255, 128, 0)); // Orange for other players
     }
 
     playerShape_.setPosition(posX, posY);
@@ -336,7 +285,6 @@ void Graphics::renderUI() {
 
   sf::Text statusText;
   statusText.setFont(font_);
-
   if (gameState_->hasGameEnded()) {
     uint8_t winnerId = gameState_->getWinnerId();
     if (winnerId == 0xFF) {
@@ -356,7 +304,6 @@ void Graphics::renderUI() {
     statusText.setString("Waiting for game to start...");
     statusText.setFillColor(sf::Color::White);
   }
-
   statusText.setCharacterSize(16);
   statusText.setPosition(10, 10);
   window_->draw(statusText);
