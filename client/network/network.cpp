@@ -23,7 +23,7 @@ namespace network {
 Network::Network(const std::string &host, int port, bool debugMode,
                  GameState *gameState)
     : host_(host), port_(port), debugMode_(debugMode), socket_(-1),
-      running_(false), gameState_(gameState), 
+      running_(false), gameState_(gameState),
       protocolHandlers_(gameState, debugMode) {
 
   pfd_.fd = -1;

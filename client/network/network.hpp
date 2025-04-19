@@ -69,7 +69,7 @@ private:
 
   // Network thread function
   void networkLoop();
-  
+
   // Helper methods for debugging
   std::string packetTypeToString(protocol::PacketType type);
   std::string toHexString(uint8_t byte);
