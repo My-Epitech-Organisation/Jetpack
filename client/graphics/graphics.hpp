@@ -52,6 +52,9 @@ private:
   bool initializeWindow();
   bool initializeResources();
   void processEvents();
+
+  // Window resize handler
+  void handleWindowResize(unsigned int width, unsigned int height);
 };
 
 } // namespace graphics

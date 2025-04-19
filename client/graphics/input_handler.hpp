@@ -27,10 +27,15 @@ public:
   // Set callback for window closing
   void setOnWindowClosedCallback(std::function<void()> callback);
 
+  // Set callback for window resizing
+  void setOnWindowResizeCallback(
+      std::function<void(unsigned int, unsigned int)> callback);
+
 private:
   GameState *gameState_;
   bool debugMode_;
   std::function<void()> onWindowClosedCallback_;
+  std::function<void(unsigned int, unsigned int)> onWindowResizeCallback_;
 
   // Helper to handle key presses
   void handleKeyPress(sf::Keyboard::Key key, bool isPressed);

@@ -22,12 +22,20 @@ public:
 
   bool initialize(sf::Font &font);
   void render(sf::RenderWindow *window);
+  void handleResize(sf::RenderWindow *window, unsigned int width,
+                    unsigned int height);
 
 private:
   // Core data
   GameState *gameState_;
   bool debugMode_;
   sf::Font *font_; // Pointer to the font used for rendering text
+
+  // View management
+  sf::View gameView_; // View for the game world
+  sf::View uiView_;   // View for the UI elements
+  const unsigned int virtualWidth_ = 800;
+  const unsigned int virtualHeight_ = 600;
 
   // SFML shape objects
   sf::CircleShape playerShape_;      // Green circle

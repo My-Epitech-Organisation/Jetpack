@@ -14,10 +14,15 @@ namespace graphics {
 
 InputHandler::InputHandler(GameState *gameState, bool debugMode)
     : gameState_(gameState), debugMode_(debugMode),
-      onWindowClosedCallback_(nullptr) {}
+      onWindowClosedCallback_(nullptr), onWindowResizeCallback_(nullptr) {}
 
 void InputHandler::setOnWindowClosedCallback(std::function<void()> callback) {
   onWindowClosedCallback_ = callback;
+}
+
+void InputHandler::setOnWindowResizeCallback(
+    std::function<void(unsigned int, unsigned int)> callback) {
+  onWindowResizeCallback_ = callback;
 }
 
 void InputHandler::processEvent(const sf::Event &event,
@@ -32,6 +37,12 @@ void InputHandler::processEvent(const sf::Event &event,
       debug::print("InputHandler", "Window closed, triggering callback",
                    debugMode_);
       onWindowClosedCallback_();
+    }
+    break;
+
+  case sf::Event::Resized:
+    if (onWindowResizeCallback_) {
+      onWindowResizeCallback_(event.size.width, event.size.height);
     }
     break;
 

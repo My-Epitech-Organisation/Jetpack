@@ -22,6 +22,12 @@ Graphics::Graphics(GameState *gameState, bool debugMode)
   // Create component classes
   renderer_ = std::make_unique<Renderer>(gameState, debugMode);
   inputHandler_ = std::make_unique<InputHandler>(gameState, debugMode);
+
+  // Set up the resize callback
+  inputHandler_->setOnWindowResizeCallback(
+      [this](unsigned int width, unsigned int height) {
+        this->handleWindowResize(width, height);
+      });
 }
 
 Graphics::~Graphics() { stop(); }
@@ -115,6 +121,13 @@ void Graphics::processEvents() {
   while (window_->pollEvent(event)) {
     inputHandler_->processEvent(event, window_.get());
   }
+}
+
+void Graphics::handleWindowResize(unsigned int width, unsigned int height) {
+  if (!window_ || !renderer_)
+    return;
+
+  renderer_->handleResize(window_.get(), width, height);
 }
 
 } // namespace graphics

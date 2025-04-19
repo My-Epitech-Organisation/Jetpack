@@ -13,7 +13,15 @@ namespace jetpack {
 namespace graphics {
 
 Renderer::Renderer(GameState *gameState, bool debugMode)
-    : gameState_(gameState), debugMode_(debugMode), font_(nullptr) {}
+    : gameState_(gameState), debugMode_(debugMode), font_(nullptr) {
+
+  // Initialize views with default virtual screen size
+  gameView_.setSize(virtualWidth_, virtualHeight_);
+  gameView_.setCenter(virtualWidth_ / 2.0f, virtualHeight_ / 2.0f);
+
+  uiView_.setSize(virtualWidth_, virtualHeight_);
+  uiView_.setCenter(virtualWidth_ / 2.0f, virtualHeight_ / 2.0f);
+}
 
 bool Renderer::initialize(sf::Font &font) {
   font_ = &font;
@@ -46,14 +54,23 @@ void Renderer::render(sf::RenderWindow *window) {
   window->clear(sf::Color(50, 50, 50));
 
   if (gameState_->isConnected()) {
+    // Set the game view for world elements
+    window->setView(gameView_);
     renderMap(window);
     renderPlayers(window);
+
+    // Set the UI view for interface elements
+    window->setView(uiView_);
     renderUI(window, *font_);
   } else {
+    // Use UI view for connecting message
+    window->setView(uiView_);
     renderConnectingMessage(window, *font_);
   }
 
   if (debugMode_) {
+    // Debug info uses UI view
+    window->setView(uiView_);
     renderDebugInfo(window, *font_);
   }
 
@@ -159,6 +176,7 @@ void Renderer::renderUI(sf::RenderWindow *window, const sf::Font &font) {
   }
   statusText.setString(ss.str());
   statusText.setCharacterSize(16);
+  // Fixed position using virtual coordinate system
   statusText.setPosition(10, 10);
   window->draw(statusText);
 
@@ -167,7 +185,8 @@ void Renderer::renderUI(sf::RenderWindow *window, const sf::Font &font) {
   controlsText.setString("Controls: Space = Jetpack");
   controlsText.setCharacterSize(14);
   controlsText.setFillColor(sf::Color(200, 200, 200));
-  controlsText.setPosition(10, window->getSize().y - 25);
+  // Fixed position using virtual coordinate system
+  controlsText.setPosition(10, virtualHeight_ - 25);
   window->draw(controlsText);
 }
 
@@ -201,7 +220,8 @@ void Renderer::renderDebugInfo(sf::RenderWindow *window, const sf::Font &font) {
   debugText.setString(ss.str());
   debugText.setCharacterSize(12);
   debugText.setFillColor(sf::Color::Red);
-  debugText.setPosition(window->getSize().x - 250, 10);
+  // Use virtual coordinates instead of window coordinates
+  debugText.setPosition(virtualWidth_ - 250, 10);
   window->draw(debugText);
 }
 
@@ -212,9 +232,38 @@ void Renderer::renderConnectingMessage(sf::RenderWindow *window,
   text.setString("Connecting to server...");
   text.setCharacterSize(24);
   text.setFillColor(sf::Color::White);
-  text.setPosition(window->getSize().x / 2 - text.getLocalBounds().width / 2,
-                   window->getSize().y / 2 - text.getLocalBounds().height / 2);
+
+  // Center text using virtual coordinates
+  text.setPosition(virtualWidth_ / 2.0f - text.getLocalBounds().width / 2.0f,
+                   virtualHeight_ / 2.0f - text.getLocalBounds().height / 2.0f);
   window->draw(text);
+}
+
+void Renderer::handleResize(sf::RenderWindow *window, unsigned int width,
+                            unsigned int height) {
+  if (!window)
+    return;
+
+  // Compute the scale ratio to maintain aspect ratio
+  float scaleX = static_cast<float>(width) / virtualWidth_;
+  float scaleY = static_cast<float>(height) / virtualHeight_;
+
+  // Use letterboxing/pillarboxing to maintain aspect ratio
+  float scale = std::min(scaleX, scaleY);
+  float viewWidth = virtualWidth_ * scale;
+  float viewHeight = virtualHeight_ * scale;
+
+  // Center the view in the window
+  float viewX = (width - viewWidth) / 2.0f;
+  float viewY = (height - viewHeight) / 2.0f;
+
+  // Update game view
+  gameView_.setViewport(sf::FloatRect(viewX / width, viewY / height,
+                                      viewWidth / width, viewHeight / height));
+
+  // UI view always covers the full virtual size
+  uiView_.setViewport(sf::FloatRect(viewX / width, viewY / height,
+                                    viewWidth / width, viewHeight / height));
 }
 
 } // namespace graphics
