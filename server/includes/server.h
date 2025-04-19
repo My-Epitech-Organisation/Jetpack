@@ -86,7 +86,7 @@ int check_payload_length(uint16_t payload_length, server_t *server, int i);
 int check_read(int read_ret, uint16_t payload_length, char *payload);
 
 // Sending messages to clients
-void send_welcome(int client_fd, uint8_t assigned_id);
+void send_welcome(server_t *server, int client_fd, uint8_t assigned_id);
 void send_game_start(server_t *server, int client_fd);
 void send_map(server_t *server, int client_fd);
 void send_game_state(server_t *server, int client_fd);
@@ -126,7 +126,7 @@ char *get_type_string_prev(uint8_t type);
 // Debugging functions
 void print_debug_info_package_received(server_t *server, char *context,
     uint16_t payload_length);
-void print_debug_info_package_sent(const char *context,
+void print_debug_info_package_sent(server_t *server,
     const char *type_name, const unsigned char *packet, size_t packet_size);
 void print_packet_hex(const unsigned char *header,
     const unsigned char *payload, size_t payload_len);
