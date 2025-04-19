@@ -201,18 +201,26 @@ Table of Contents                                                    Page
 
 4.6.  GAME_STATE (0x06) – Server → Client
 
-   Purpose:  Broadcasts authoritative positions, scores, and life states.
+### Purpose
 
-   Payload (example):
+Broadcasts authoritative positions, scores, life states, and collected bonuses (e.g., coins).
 
-     0       1       2       3       4
-     +-------+-------+-------+-------+-------------...
-     |   TICK (4 B)  | NumP(1B) | Repeated Player Data [...]
-     +-------+-------+-------+-------+-------------...
+### Payload Format
 
-   Per‑player block:
+    0       1       2       3       4
+    +-------+-------+-------+-------+-------------...
+    |   TICK (4 B)  | NumPlayers (1B) | Repeated Player Data [...]
+    +-------+-------+-------+-------+-------------...
 
-     ID(1B) PosX(2B) PosY(2B) Score(2B) Alive(1B)
+### Per‑player data block (9 bytes per player):
+
+    ID(1B) PosX(2B) PosY(2B) Score(2B) Alive(1B) CollectedCoin(1B)
+
+- **ID (1B)**: Unique identifier of the player.
+- **PosX / PosY (2B each)**: Current position in world coordinates.
+- **Score (2B)**: Current player score.
+- **Alive (1B)**: 1 = alive, 0 = dead.
+- **CollectedCoin (1B)**: 1 = a coin was collected this tick, 0 = no.
 
 4.7.  GAME_END (0x07) – Server → Client
 
