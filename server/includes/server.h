@@ -50,6 +50,7 @@ typedef struct client_s {
     uint16_t x;
     uint16_t y;
     bool jetpack;
+    bool collected_coin;
 } client_t;
 
 typedef struct server_s {
