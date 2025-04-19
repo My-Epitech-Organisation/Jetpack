@@ -17,6 +17,8 @@ add_executable(jetpack_client
     main.cpp
     gamestate.cpp
     graphics/graphics.cpp
+    graphics/renderer.cpp
+    graphics/input_handler.cpp
     network/network.cpp
     network/protocol_handlers.cpp
     debug/debug.cpp

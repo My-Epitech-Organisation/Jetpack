@@ -23,8 +23,8 @@ namespace network {
 Network::Network(const std::string &host, int port, bool debugMode,
                  GameState *gameState)
     : host_(host), port_(port), debugMode_(debugMode), socket_(-1),
-      running_(false), gameState_(gameState) {
-  protocolHandlers_ = std::make_unique<ProtocolHandlers>(gameState, debugMode);
+      running_(false), gameState_(gameState),
+      protocolHandlers_(gameState, debugMode) {
 
   pfd_.fd = -1;
   pfd_.events = POLLIN;
@@ -143,22 +143,22 @@ void Network::run() {
                 static_cast<protocol::PacketType>(header.type);
             switch (packetType) {
             case protocol::SERVER_WELCOME:
-              protocolHandlers_->handleServerWelcome(payload);
+              protocolHandlers_.handleServerWelcome(payload);
               break;
             case protocol::MAP_CHUNK:
-              protocolHandlers_->handleMapChunk(payload);
+              protocolHandlers_.handleMapChunk(payload);
               break;
             case protocol::GAME_START:
-              protocolHandlers_->handleGameStart(payload);
+              protocolHandlers_.handleGameStart(payload);
               break;
             case protocol::GAME_STATE:
-              protocolHandlers_->handleGameState(payload);
+              protocolHandlers_.handleGameState(payload);
               break;
             case protocol::GAME_END:
-              protocolHandlers_->handleGameEnd(payload);
+              protocolHandlers_.handleGameEnd(payload);
               break;
             case protocol::DEBUG_INFO:
-              protocolHandlers_->handleDebugInfo(payload);
+              protocolHandlers_.handleDebugInfo(payload);
               break;
             default:
               debug::print("Network",
@@ -314,8 +314,8 @@ bool Network::receivePacket(protocol::PacketHeader *header,
 void Network::sendPlayerInput() {
   std::vector<uint8_t> payload;
   uint8_t playerId = gameState_->getAssignedId();
-  uint8_t jetpackState = gameState_->isJetpackActive() ? 
-                        protocol::JETPACK_ON : protocol::JETPACK_OFF;
+  uint8_t jetpackState = gameState_->isJetpackActive() ? protocol::JETPACK_ON
+                                                       : protocol::JETPACK_OFF;
 
   payload.push_back(playerId);
   payload.push_back(jetpackState);
@@ -323,10 +323,12 @@ void Network::sendPlayerInput() {
   sendPacket(protocol::CLIENT_INPUT, payload);
 
   // Log when jetpack state changes
-  static uint8_t lastJetpackState = 0xFF; // Initialize to invalid value to ensure first log
+  static uint8_t lastJetpackState =
+      0xFF; // Initialize to invalid value to ensure first log
   if (jetpackState != lastJetpackState) {
     std::stringstream ss;
-    ss << "Input changed: Jetpack=" << (jetpackState == protocol::JETPACK_ON ? "ON" : "OFF");
+    ss << "Input changed: Jetpack="
+       << (jetpackState == protocol::JETPACK_ON ? "ON" : "OFF");
     debug::logToFile("Network", ss.str(), debugMode_);
     lastJetpackState = jetpackState;
   }

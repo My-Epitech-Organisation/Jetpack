@@ -36,6 +36,11 @@ void GameState::addMapChunk(const std::vector<uint8_t> &chunkData) {
   mapData.insert(mapData.end(), chunkData.begin(), chunkData.end());
 }
 
+void GameState::setMapData(const std::vector<uint8_t> &data) {
+  std::lock_guard<std::mutex> lock(mutex_);
+  mapData = data;
+}
+
 void GameState::setPlayerStates(
     const std::vector<protocol::PlayerState> &states) {
   std::lock_guard<std::mutex> lock(mutex_);

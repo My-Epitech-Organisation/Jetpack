@@ -17,62 +17,42 @@ namespace jetpack {
 namespace debug {
 
 /**
- * @brief Initialize the logging system
- *
+ * Initialize the logging system
  * Creates a log file in the debug directory with the format:
  * client_[date]_[time].log
- *
- * @param debugMode Whether debug mode is enabled
- * @return true if initialization was successful
  */
 bool initLogging(bool debugMode);
 
 /**
- * @brief Clean up logging resources
+ * Clean up logging resources
  */
 void shutdownLogging();
 
 /**
- * @brief Print debug message to console and log file if debug mode is enabled
- *
- * @param component Name of the component (e.g., "Network", "Graphics")
- * @param message Debug message to print
- * @param debugMode Whether debug mode is enabled
+ * Print debug message to console and log file if debug mode is enabled
  */
 void print(const std::string &component, const std::string &message,
            bool debugMode);
 
 /**
- * @brief Log debug message to file only (no console output)
- *
- * @param component Name of the component (e.g., "Network", "Graphics")
- * @param message Debug message to log
- * @param debugMode Whether debug mode is enabled
+ * Log debug message to file only (no console output)
  */
 void logToFile(const std::string &component, const std::string &message,
                bool debugMode);
 
 /**
- * @brief Format binary data as hex dump for debugging
- *
- * @param data Binary data to format
- * @param maxBytes Max bytes to show (0 for all)
- * @return Formatted hex string
+ * Format binary data as hex dump for debugging
  */
 std::string formatHexDump(const std::vector<uint8_t> &data,
                           size_t maxBytes = 0);
 
 /**
- * @brief Get current timestamp for debug messages
- *
- * @return Formatted timestamp string
+ * Get current timestamp for debug messages
  */
 std::string getTimestamp();
 
 /**
- * @brief Get current date and time formatted for filenames
- *
- * @return Formatted date and time string for filenames (YYYY-MM-DD_HH-MM-SS)
+ * Get current date and time formatted for filenames
  */
 std::string getFileTimestamp();
 
