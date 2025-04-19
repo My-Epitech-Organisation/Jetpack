@@ -14,7 +14,6 @@
 #include "protocol_handlers.hpp"
 #include <arpa/inet.h>
 #include <atomic>
-#include <memory>
 #include <netinet/in.h>
 #include <poll.h>
 #include <string>

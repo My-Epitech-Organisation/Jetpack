@@ -8,7 +8,6 @@
 
 #include "protocol_handlers.hpp"
 #include "../debug/debug.hpp"
-#include <cmath>
 #include <sstream>
 
 namespace jetpack {
