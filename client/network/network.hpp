@@ -14,7 +14,6 @@
 #include "protocol_handlers.hpp"
 #include <arpa/inet.h>
 #include <atomic>
-#include <memory>
 #include <netinet/in.h>
 #include <poll.h>
 #include <string>
@@ -28,81 +27,49 @@ namespace network {
 
 class Network {
 public:
-  /**
-   * @brief Initialize network component
-   *
-   * @param host Server hostname or IP
-   * @param port Server port number
-   * @param debugMode Whether debug mode is enabled
-   * @param gameState Shared game state
-   */
   Network(const std::string &host, int port, bool debugMode,
           GameState *gameState);
-
-  /**
-   * @brief Cleanup resources
-   */
   ~Network();
 
-  /**
-   * @brief Connect to server and send CLIENT_CONNECT packet
-   *
-   * @return true if connected successfully
-   */
+  // Core network operations
   bool connect();
-
-  /**
-   * @brief Send CLIENT_DISCONNECT packet and close connection
-   */
   void disconnect();
-
-  /**
-   * @brief Start network thread to process packets
-   */
   void run();
-
-  /**
-   * @brief Stop network thread
-   */
   void stop();
 
-  /**
-   * @brief Send a debug message to server
-   *
-   * @param message Message to send
-   * @return true if sent successfully
-   */
-  bool sendDebugMessage(const std::string &message);
-
-private:
-  // Connection info
-  std::string host_;
-  int port_;
-  bool debugMode_;
-  int socket_;
-  std::atomic<bool> running_;
-  GameState *gameState_;
-  struct pollfd pfd_;
-
-  // Thread
-  std::thread networkThread_;
-
-  // Protocol handlers
-  std::unique_ptr<ProtocolHandlers> protocolHandlers_;
-
-  // Network methods
+  // Packet communication
   bool sendPacket(protocol::PacketType type,
                   const std::vector<uint8_t> &payload);
   bool receivePacket(protocol::PacketHeader *header,
                      std::vector<uint8_t> *payload);
 
-  // Input sending
+  // Game-specific communication
   void sendPlayerInput();
-
-  // Connection health checking
+  bool sendDebugMessage(const std::string &message);
   void checkConnectionHealth();
 
-  // Helper functions
+private:
+  // Network configuration
+  std::string host_;
+  int port_;
+  bool debugMode_;
+  int socket_;
+  struct pollfd pfd_;
+
+  // Thread management
+  std::atomic<bool> running_;
+  std::thread networkThread_;
+
+  // Game state reference
+  GameState *gameState_;
+
+  // Protocol handlers
+  ProtocolHandlers protocolHandlers_;
+
+  // Network thread function
+  void networkLoop();
+
+  // Helper methods for debugging
   std::string packetTypeToString(protocol::PacketType type);
   std::string toHexString(uint8_t byte);
 };
