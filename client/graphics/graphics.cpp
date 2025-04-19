@@ -72,7 +72,6 @@ void Graphics::run() {
 
       while (running_ && window_ && window_->isOpen()) {
         processEvents();
-        update();
         renderer_->render(window_.get());
       }
 
@@ -116,11 +115,6 @@ void Graphics::processEvents() {
   while (window_->pollEvent(event)) {
     inputHandler_->processEvent(event, window_.get());
   }
-}
-
-void Graphics::update() {
-  // This method is kept for future game logic updates that don't belong
-  // in either the renderer or input handler
 }
 
 } // namespace graphics

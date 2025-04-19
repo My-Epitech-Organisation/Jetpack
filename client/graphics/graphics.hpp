@@ -46,7 +46,6 @@ private:
   bool initializeWindow();
   bool initializeResources();
   void processEvents();
-  void update();
 };
 
 } // namespace graphics
