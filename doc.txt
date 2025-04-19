@@ -192,14 +192,12 @@ Table of Contents                                                    Page
    Payload:
 
      0       1       2
-     +-------+-------+---------------- ...
-     | ID(1B)| Mask(1B)| (opt. SeqNo 2B)
-     +-------+-------+---------------- ...
+    +-------+-------+
+    | ID(1B)| Jetpack (1B)
+    +-------+-------+
 
-   **Mask** bits (bit 0 = LSB):
-
-     0  Move Left     1  Move Right     2  Jetpack On
-     3‑7  Reserved
+   * **ID** : The player ID assigned by the server.
+   * **Jetpack** : 1 = ON (ascending), 0 = OFF (falling).
 
 4.6.  GAME_STATE (0x06) – Server → Client
 
