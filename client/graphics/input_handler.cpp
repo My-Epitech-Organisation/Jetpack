@@ -1,4 +1,5 @@
-// filepath: /home/psalmon/Documents/Sem4/Jetpack/Jetpack/client/graphics/input_handler.cpp
+// filepath:
+// /home/psalmon/Documents/Sem4/Jetpack/Jetpack/client/graphics/input_handler.cpp
 // Copyright 2025 paul-antoine.salmon@epitech.eu
 /*
 ** EPITECH PROJECT, 2025
@@ -14,35 +15,38 @@ namespace jetpack {
 namespace graphics {
 
 InputHandler::InputHandler(GameState *gameState, bool debugMode)
-    : gameState_(gameState), debugMode_(debugMode), onWindowClosedCallback_(nullptr) {}
+    : gameState_(gameState), debugMode_(debugMode),
+      onWindowClosedCallback_(nullptr) {}
 
 void InputHandler::setOnWindowClosedCallback(std::function<void()> callback) {
   onWindowClosedCallback_ = callback;
 }
 
-void InputHandler::processEvent(const sf::Event &event, sf::RenderWindow *window) {
+void InputHandler::processEvent(const sf::Event &event,
+                                sf::RenderWindow *window) {
   if (!window)
     return;
 
   switch (event.type) {
-    case sf::Event::Closed:
-      window->close();
-      if (onWindowClosedCallback_) {
-        debug::print("InputHandler", "Window closed, triggering callback", debugMode_);
-        onWindowClosedCallback_();
-      }
-      break;
-      
-    case sf::Event::KeyPressed:
-      handleKeyPress(event.key.code, true);
-      break;
-      
-    case sf::Event::KeyReleased:
-      handleKeyPress(event.key.code, false);
-      break;
-      
-    default:
-      break;
+  case sf::Event::Closed:
+    window->close();
+    if (onWindowClosedCallback_) {
+      debug::print("InputHandler", "Window closed, triggering callback",
+                   debugMode_);
+      onWindowClosedCallback_();
+    }
+    break;
+
+  case sf::Event::KeyPressed:
+    handleKeyPress(event.key.code, true);
+    break;
+
+  case sf::Event::KeyReleased:
+    handleKeyPress(event.key.code, false);
+    break;
+
+  default:
+    break;
   }
 }
 
@@ -51,24 +55,25 @@ void InputHandler::handleKeyPress(sf::Keyboard::Key key, bool isPressed) {
   bool newJetpackState = jetpackCurrentlyActive;
 
   switch (key) {
-    case sf::Keyboard::Space:
-      newJetpackState = isPressed;
-      break;
+  case sf::Keyboard::Space:
+    newJetpackState = isPressed;
+    break;
 
-    case sf::Keyboard::Escape:
-      // Escape is handled by window closing in processEvent
-      break;
+  case sf::Keyboard::Escape:
+    // Escape is handled by window closing in processEvent
+    break;
 
-    default:
-      return;
+  default:
+    return;
   }
 
   if (newJetpackState != jetpackCurrentlyActive) {
     gameState_->setJetpackActive(newJetpackState);
     if (debugMode_) {
-      debug::logToFile("InputHandler", 
-                      "Jetpack state changed to: " + std::string(newJetpackState ? "ON" : "OFF"), 
-                      debugMode_);
+      debug::logToFile("InputHandler",
+                       "Jetpack state changed to: " +
+                           std::string(newJetpackState ? "ON" : "OFF"),
+                       debugMode_);
     }
   }
 }

@@ -1,4 +1,5 @@
-// filepath: /home/psalmon/Documents/Sem4/Jetpack/Jetpack/client/graphics/renderer.cpp
+// filepath:
+// /home/psalmon/Documents/Sem4/Jetpack/Jetpack/client/graphics/renderer.cpp
 // Copyright 2025 paul-antoine.salmon@epitech.eu
 /*
 ** EPITECH PROJECT, 2025
@@ -8,8 +9,6 @@
 */
 
 #include "renderer.hpp"
-#include "../debug/debug.hpp"
-#include <iomanip>
 #include <sstream>
 
 namespace jetpack {
@@ -222,7 +221,8 @@ void Renderer::renderDebugInfo(sf::RenderWindow *window, const sf::Font &font) {
   window->draw(debugText);
 }
 
-void Renderer::renderConnectingMessage(sf::RenderWindow *window, const sf::Font &font) {
+void Renderer::renderConnectingMessage(sf::RenderWindow *window,
+                                       const sf::Font &font) {
   sf::Text text;
   text.setFont(font);
   text.setString("Connecting to server...");

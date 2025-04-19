@@ -1,4 +1,5 @@
-// filepath: /home/psalmon/Documents/Sem4/Jetpack/Jetpack/client/graphics/input_handler.hpp
+// filepath:
+// /home/psalmon/Documents/Sem4/Jetpack/Jetpack/client/graphics/input_handler.hpp
 // Copyright 2025 paul-antoine.salmon@epitech.eu
 /*
 ** EPITECH PROJECT, 2025
@@ -24,7 +25,7 @@ public:
 
   // Handle input events from the window
   void processEvent(const sf::Event &event, sf::RenderWindow *window);
-  
+
   // Set callback for window closing
   void setOnWindowClosedCallback(std::function<void()> callback);
 

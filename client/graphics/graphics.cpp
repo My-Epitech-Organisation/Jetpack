@@ -16,17 +16,15 @@ namespace jetpack {
 namespace graphics {
 
 Graphics::Graphics(GameState *gameState, bool debugMode)
-    : window_(nullptr), debugMode_(debugMode),
-      running_(false), graphicsInitialized_(false) {
-  
+    : window_(nullptr), debugMode_(debugMode), running_(false),
+      graphicsInitialized_(false) {
+
   // Create component classes
   renderer_ = std::make_unique<Renderer>(gameState, debugMode);
   inputHandler_ = std::make_unique<InputHandler>(gameState, debugMode);
 }
 
-Graphics::~Graphics() { 
-  stop(); 
-}
+Graphics::~Graphics() { stop(); }
 
 bool Graphics::initializeWindow() {
   try {
@@ -104,9 +102,7 @@ void Graphics::stop() {
   }
 }
 
-bool Graphics::isRunning() const { 
-  return running_; 
-}
+bool Graphics::isRunning() const { return running_; }
 
 void Graphics::setOnWindowClosedCallback(std::function<void()> callback) {
   inputHandler_->setOnWindowClosedCallback(callback);

@@ -1,4 +1,5 @@
-// filepath: /home/psalmon/Documents/Sem4/Jetpack/Jetpack/client/graphics/renderer.hpp
+// filepath:
+// /home/psalmon/Documents/Sem4/Jetpack/Jetpack/client/graphics/renderer.hpp
 // Copyright 2025 paul-antoine.salmon@epitech.eu
 /*
 ** EPITECH PROJECT, 2025
@@ -12,7 +13,6 @@
 
 #include "../gamestate.hpp"
 #include <SFML/Graphics.hpp>
-#include <memory>
 
 namespace jetpack {
 namespace graphics {
@@ -29,7 +29,7 @@ private:
   // Data
   GameState *gameState_;
   bool debugMode_;
-  sf::Font *font_;  // Pointer to the font used for rendering text
+  sf::Font *font_; // Pointer to the font used for rendering text
 
   // SFML shape objects
   sf::CircleShape playerShape_;      // Green circle
