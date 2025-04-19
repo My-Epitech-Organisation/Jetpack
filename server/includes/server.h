@@ -49,9 +49,7 @@ typedef struct client_s {
     bool is_alive;
     uint16_t x;
     uint16_t y;
-    bool input_left;
-    bool input_right;
-    bool input_jetpack;
+    bool jetpack;
 } client_t;
 
 typedef struct server_s {
@@ -76,7 +74,7 @@ typedef struct server_s {
 } server_t;
 
 // Error handling functions
-void handle_error(char *msg);
+void handle_error(char *msg, server_t *server);
 int arg_missing(int argc);
 int check_args(int argc, char **argv);
 bool check_port(char *port);
@@ -93,6 +91,7 @@ void send_game_state(server_t *server, int client_fd);
 void send_game_state_to_all_clients(server_t *server);
 void send_game_start(server_t *server, int client_fd);
 void send_game_state_to_all_clients(server_t *server);
+void send_disconnect(server_t *server);
 
 // Writing messages to clients
 void write_header(uint8_t *buf, uint8_t type, uint16_t total_len);
@@ -106,15 +105,14 @@ void write_data_state_payload(uint8_t *buffer, client_t *client, size_t offset,
 
 // Server set up functions
 void server(int argc, char **argv);
-int set_server_socket(void);
+int set_server_socket(server_t *server);
 void set_bind(server_t *server);
-void set_listen(int fd);
+void set_listen(server_t *server);
 
 // Handling client functions
 void handle_clients(server_t *server);
 void read_client(server_t *server, int i);
-void handle_input(server_t *server, int client_id, char *payload,
-    uint16_t len);
+void handle_input(server_t *server, int client_id, char *payload);
 
 bool send_with_write(int fd, const void *buffer, size_t length);
 void parsing_launch(int argc, char **argv, server_t *server);
@@ -122,6 +120,7 @@ void load_map(server_t *server);
 void launch_game(server_t *server);
 void game_loop(server_t *server);
 char *get_type_string_prev(uint8_t type);
+void close_everything(server_t *server);
 
 // Debugging functions
 void print_debug_info_package_received(server_t *server, char *context,

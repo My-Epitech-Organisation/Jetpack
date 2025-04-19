@@ -22,14 +22,14 @@ void server(int argc, char **argv)
     server_t *server = malloc(sizeof(server_t));
 
     if (server == NULL)
-        handle_error("malloc");
+        handle_error("malloc", server);
     parsing_launch(argc, argv, server);
-    server->fd = set_server_socket();
+    server->fd = set_server_socket(server);
     server->client_count = 0;
-    server->start_x = 2;
-    server->start_y = 2;
+    server->start_x = 1;
+    server->start_y = 1;
     set_bind(server);
-    set_listen(server->fd);
+    set_listen(server);
     load_map(server);
     handle_clients(server);
     launch_game(server);
