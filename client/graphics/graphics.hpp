@@ -4,6 +4,8 @@
 #define CLIENT_GRAPHICS_GRAPHICS_HPP_
 
 #include "../gamestate.hpp"
+#include "input_handler.hpp"
+#include "renderer.hpp"
 #include <SFML/Graphics.hpp>
 #include <atomic>
 #include <functional>
@@ -28,45 +30,23 @@ public:
 private:
   // Window and game state
   std::unique_ptr<sf::RenderWindow> window_;
-  GameState *gameState_;
   bool debugMode_;
   std::atomic<bool> running_;
   std::atomic<bool> graphicsInitialized_;
   std::thread graphicsThread_;
 
-  // Callback called when window is closed
-  std::function<void()> onWindowClosedCallback_;
-
-  // SFML objects
+  // Font resource
   sf::Font font_;
-  sf::CircleShape playerShape_;  // Green circle
-  sf::RectangleShape wallShape_; // Red square
-  sf::CircleShape coinShape_;    // Yellow circle
-  sf::RectangleShape
-      electricShape_; // Yellow triangle (approximated with rectangle)
 
-  // Game scale factors
-  const float TILE_SIZE = 20.0f;
-  const float PLAYER_RADIUS = 10.0f;
-  const float COIN_RADIUS = 5.0f;
-  const float FIXED_PLAYER_X_POS =
-      200.0f; // Fixed horizontal position for player
+  // Component classes
+  std::unique_ptr<Renderer> renderer_;
+  std::unique_ptr<InputHandler> inputHandler_;
 
   // Graphics methods
   bool initializeWindow();
   bool initializeResources();
   void processEvents();
   void update();
-  void render();
-
-  // Rendering helpers
-  void renderMap();
-  void renderPlayers();
-  void renderUI();
-  void renderDebugInfo();
-
-  // Input handling
-  void handleKeyPress(sf::Keyboard::Key key, bool isPressed);
 };
 
 } // namespace graphics
