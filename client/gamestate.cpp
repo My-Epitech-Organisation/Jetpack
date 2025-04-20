@@ -58,15 +58,24 @@ void GameState::setGameEnded(bool ended, uint8_t winId) {
   winnerId = winId;
 }
 
-void GameState::addCollectedCoin(uint16_t tileX, uint16_t tileY) {
+void GameState::addCollectedCoinByLocalPlayer(uint16_t tileX, uint16_t tileY) {
   std::lock_guard<std::mutex> lock(mutex_);
-  collectedCoins.insert({tileX, tileY});
+  coinsCollectedByLocalPlayer.insert({tileX, tileY});
 }
 
-const std::set<std::pair<uint16_t, uint16_t>> &
-GameState::getCollectedCoins() const {
+void GameState::addCollectedCoinByOtherPlayer(uint16_t tileX, uint16_t tileY) {
   std::lock_guard<std::mutex> lock(mutex_);
-  return collectedCoins;
+  coinsCollectedByOtherPlayers.insert({tileX, tileY});
+}
+
+bool GameState::isCoinCollectedByLocalPlayer(uint16_t tileX, uint16_t tileY) const {
+  std::lock_guard<std::mutex> lock(mutex_);
+  return coinsCollectedByLocalPlayer.find({tileX, tileY}) != coinsCollectedByLocalPlayer.end();
+}
+
+bool GameState::isCoinCollectedByOtherPlayer(uint16_t tileX, uint16_t tileY) const {
+  std::lock_guard<std::mutex> lock(mutex_);
+  return coinsCollectedByOtherPlayers.find({tileX, tileY}) != coinsCollectedByOtherPlayers.end();
 }
 
 bool GameState::isConnected() const { return connected; }

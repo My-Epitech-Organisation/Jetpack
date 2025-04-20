@@ -123,11 +123,9 @@ void Renderer::renderMap(sf::RenderWindow *window) {
 
   // Get player states to check for coin collection
   auto players = gameState_->getPlayerStates();
+  uint8_t localPlayerId = gameState_->getAssignedId();
 
-  // Get persistent collected coins from gameState
-  const auto &persistentCollectedCoins = gameState_->getCollectedCoins();
-
-  // Check for newly collected coins and add them to persistent storage
+  // Check for newly collected coins and add them to appropriate collections
   for (const auto &player : players) {
     if (player.collectedCoin) {
       // Convert normalized server coordinates to map tile coordinates
@@ -136,8 +134,12 @@ void Renderer::renderMap(sf::RenderWindow *window) {
       uint16_t tileX = static_cast<uint16_t>(displayPos.x / TILE_SIZE);
       uint16_t tileY = static_cast<uint16_t>(displayPos.y / TILE_SIZE);
 
-      // Add to persistent storage if it's a new coin
-      gameState_->addCollectedCoin(tileX, tileY);
+      // Add the collected coin to the appropriate collection
+      if (player.id == localPlayerId) {
+        gameState_->addCollectedCoinByLocalPlayer(tileX, tileY);
+      } else {
+        gameState_->addCollectedCoinByOtherPlayer(tileX, tileY);
+      }
     }
   }
 
@@ -156,19 +158,27 @@ void Renderer::renderMap(sf::RenderWindow *window) {
         break;
       }
       case protocol::COIN: {
-        // Check if this coin was collected using the persistent storage
-        bool coinCollected = persistentCollectedCoins.find({x, y}) !=
-                             persistentCollectedCoins.end();
+        // Vérifier si cette pièce a été collectée par le joueur local et/ou d'autres joueurs
+        bool collectedByLocalPlayer = gameState_->isCoinCollectedByLocalPlayer(x, y);
+        bool collectedByOtherPlayer = gameState_->isCoinCollectedByOtherPlayer(x, y);
 
-        // Change color if coin was collected
-        if (coinCollected) {
-          coinShape_.setFillColor(sf::Color(150, 150, 150)); // Gray color
-        } else {
-          coinShape_.setFillColor(sf::Color::Yellow); // Default yellow
+        // Cas 1: Collectée par les deux types de joueurs - ne pas l'afficher du tout
+        if (collectedByLocalPlayer && collectedByOtherPlayer) {
+          break;
         }
-
+        
+        // Cas 2: Collectée uniquement par le joueur local - afficher en gris
+        if (collectedByLocalPlayer) {
+          coinShape_.setFillColor(sf::Color(150, 150, 150)); // Gris
+        }
+        // Cas 3: Collectée par un autre joueur uniquement ou par personne - afficher en jaune
+        else {
+          coinShape_.setFillColor(sf::Color::Yellow);
+        }
+        
+        // Afficher la pièce
         coinShape_.setPosition(x * TILE_SIZE + TILE_SIZE / 2,
-                               y * TILE_SIZE + TILE_SIZE / 2);
+                              y * TILE_SIZE + TILE_SIZE / 2);
         window->draw(coinShape_);
         break;
       }
