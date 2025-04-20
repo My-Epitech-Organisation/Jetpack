@@ -29,7 +29,12 @@ void check_entities_colisions(client_t *client, server_t *server)
         return;
     if (server->map[row][col] == 'c') {
         client->score++;
-        server->map[row][col] = '_';
+        server->map[row][col] = 'd';
+        client->collected_coin = true;
+    }
+    if (server->map[row][col] == 'd') {
+        client->score++;
+        server->map[row][col] = 'c';
         client->collected_coin = true;
     }
     if (server->map[row][col] == 'e') {
