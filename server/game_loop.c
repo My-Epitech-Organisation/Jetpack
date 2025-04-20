@@ -21,10 +21,11 @@ void check_limits(client_t *client, server_t *server)
 
 void check_coins(client_t *client, server_t *server)
 {
-    size_t row = client->y / 100;
-    size_t col = client->x / 100;
+    size_t row = client->y * server->map_rows / 1000;
+    size_t col = client->x * server->map_cols / 1000;
 
-    if (row >= server->map_rows || col >= server->map_cols)
+    if (row < 0 || row >= server->map_rows ||
+        row < 0 || col >= server->map_cols)
         return;
     if (server->map[row][col] == 'c') {
         client->score++;
@@ -47,10 +48,11 @@ void update_game_state(server_t *server)
             continue;
         if (client->jetpack) {
             printf("Client %d is using jetpack!\n", client->fd);
-            client->y = client->y < 40 ? 0 : client->y - 40;
+            client->y = client->y < 40 ? 0 :
+            client->y - 40 * server->map_rows / 1000;
         } else
-            client->y += 50;
-        client->x += 50;
+            client->y += 50 * server->map_rows / 1000;
+        client->x += 50 * server->map_cols / 1000;
         check_limits(client, server);
         check_coins(client, server);
     }
