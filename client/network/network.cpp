@@ -24,7 +24,7 @@ Network::Network(const std::string &host, int port, bool debugMode,
                  GameState *gameState)
     : host_(host), port_(port), debugMode_(debugMode), socket_(-1),
       running_(false), gameState_(gameState),
-      protocolHandlers_(gameState, debugMode) {
+      protocolHandlers_(gameState, debugMode), lastServerTick_(0) {
 
   pfd_.fd = -1;
   pfd_.events = POLLIN;
@@ -129,7 +129,7 @@ void Network::run() {
     debug::logToFile("Network", "Network thread started", debugMode_);
 
     while (running_) {
-      int pollResult = poll(&pfd_, 1, 50); // Timeout de 50ms
+      int pollResult = poll(&pfd_, 1, 50); // Timeout of 50ms
 
       if (pollResult < 0) {
         debug::logToFile("Network",
@@ -141,25 +141,49 @@ void Network::run() {
           if (receivePacket(&header, &payload)) {
             protocol::PacketType packetType =
                 static_cast<protocol::PacketType>(header.type);
+                
+            // Process the packet based on its type
             switch (packetType) {
             case protocol::SERVER_WELCOME:
               protocolHandlers_.handleServerWelcome(payload);
+              sendAcknowledgment(header.type, 0); // Acknowledge with 0 for non-ticked messages
               break;
+              
             case protocol::MAP_CHUNK:
               protocolHandlers_.handleMapChunk(payload);
+              sendAcknowledgment(header.type, 0); // Acknowledge with 0 for non-ticked messages
               break;
+              
             case protocol::GAME_START:
               protocolHandlers_.handleGameStart(payload);
+              sendAcknowledgment(header.type, 0); // Acknowledge with 0 for non-ticked messages
               break;
+              
             case protocol::GAME_STATE:
-              protocolHandlers_.handleGameState(payload);
+              // Extract tick from the payload (first 4 bytes)
+              if (payload.size() >= 4) {
+                uint32_t tick = (payload[0] << 24) | (payload[1] << 16) | 
+                                (payload[2] << 8) | payload[3];
+                lastServerTick_ = tick;
+                protocolHandlers_.handleGameState(payload);
+                
+                // If there's a jetpack input change, it will be sent in sendPlayerInput
+                // Otherwise, we'll send an acknowledgment
+                if (!gameState_->isJetpackActive()) {
+                  sendAcknowledgment(header.type, tick);
+                }
+              }
               break;
+              
             case protocol::GAME_END:
               protocolHandlers_.handleGameEnd(payload);
+              sendAcknowledgment(header.type, 0); // Acknowledge with 0 for non-ticked messages
               break;
+              
             case protocol::DEBUG_INFO:
               protocolHandlers_.handleDebugInfo(payload);
               break;
+              
             default:
               debug::print("Network",
                            "Received unknown packet type: " +
@@ -175,13 +199,17 @@ void Network::run() {
         }
       }
 
+      // Now we only send player input when there's actual input to send
       auto now = std::chrono::steady_clock::now();
       if (gameState_->isGameRunning() &&
           std::chrono::duration_cast<std::chrono::milliseconds>(now -
                                                                 lastInputTime)
                   .count() > 50) { // 20Hz input rate
 
-        sendPlayerInput();
+        if (gameState_->isJetpackActive()) {
+          // Send player input with jetpack active
+          sendPlayerInput();
+        }
         lastInputTime = now;
       }
 
@@ -334,6 +362,28 @@ void Network::sendPlayerInput() {
   }
 }
 
+bool Network::sendAcknowledgment(uint8_t acknowledgedType, uint32_t timestamp) {
+  if (socket_ < 0)
+    return false;
+
+  std::vector<uint8_t> payload;
+  uint8_t playerId = gameState_->getAssignedId();
+  
+  // Add player ID
+  payload.push_back(playerId);
+  
+  // Add the type of packet being acknowledged
+  payload.push_back(acknowledgedType);
+  
+  // Add the timestamp or tick number (in network byte order)
+  payload.push_back((timestamp >> 24) & 0xFF);
+  payload.push_back((timestamp >> 16) & 0xFF);
+  payload.push_back((timestamp >> 8) & 0xFF);
+  payload.push_back(timestamp & 0xFF);
+
+  return sendPacket(protocol::CLIENT_ACK, payload);
+}
+
 bool Network::sendDebugMessage(const std::string &message) {
   if (!debugMode_ || socket_ < 0 || message.empty()) {
     return false;
@@ -374,6 +424,8 @@ std::string Network::packetTypeToString(protocol::PacketType type) {
     return "CLIENT_DISCONNECT";
   case protocol::DEBUG_INFO:
     return "DEBUG_INFO";
+  case protocol::CLIENT_ACK:
+    return "CLIENT_ACK";
   default:
     return "UNKNOWN";
   }

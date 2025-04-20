@@ -44,6 +44,7 @@ public:
                      std::vector<uint8_t> *payload);
 
   // Game-specific communication
+  bool sendAcknowledgment(uint8_t acknowledgedType, uint32_t timestamp);
   void sendPlayerInput();
   bool sendDebugMessage(const std::string &message);
   void checkConnectionHealth();
@@ -65,6 +66,9 @@ private:
 
   // Protocol handlers
   ProtocolHandlers protocolHandlers_;
+
+  // Last received server tick for acknowledgment
+  uint32_t lastServerTick_;
 
   // Network thread function
   void networkLoop();
