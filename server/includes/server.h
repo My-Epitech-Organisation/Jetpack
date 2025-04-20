@@ -50,6 +50,7 @@ typedef struct client_s {
     uint16_t x;
     uint16_t y;
     bool jetpack;
+    bool collected_coin;
 } client_t;
 
 typedef struct server_s {
@@ -89,8 +90,7 @@ void send_game_start(server_t *server, int client_fd);
 void send_map(server_t *server, int client_fd);
 void send_game_state(server_t *server, int client_fd);
 void send_game_state_to_all_clients(server_t *server);
-void send_game_start(server_t *server, int client_fd);
-void send_game_state_to_all_clients(server_t *server);
+void send_game_end(server_t *server, uint8_t reason, uint8_t winner_id);
 void send_disconnect(server_t *server);
 
 // Writing messages to clients
@@ -132,5 +132,14 @@ void print_packet_hex(const unsigned char *header,
 void print_debug_info_connection(server_t *server, char *context);
 void print_debug_all(server_t *server, char *context, char *payload,
     unsigned char *header);
+
+// In game functions
+void check_jetpack(client_t *client, server_t *server);
+void check_limits(client_t *client);
+void check_entities_collisions(client_t *client, server_t *server);
+bool check_alive_begin(server_t *server, int *alive_count,
+    uint8_t *alive_player_id);
+void check_alive_end(client_t *client, int *alive_count,
+    uint8_t *alive_player_id, int i);
 
 #endif /* !SERVER_H_ */

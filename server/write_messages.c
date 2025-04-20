@@ -54,4 +54,5 @@ void write_data_state_payload(uint8_t *buffer, client_t *client, size_t offset,
     buffer[offset + 5] = (client->score >> 8) & 0xFF;
     buffer[offset + 6] = client->score & 0xFF;
     buffer[offset + 7] = client->is_alive ? 1 : 0;
+    buffer[offset + 8] = client->collected_coin ? 1 : 0;
 }

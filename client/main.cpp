@@ -23,6 +23,7 @@ jetpack::network::Network *g_network = nullptr;
 jetpack::graphics::Graphics *g_graphics = nullptr;
 bool g_debug_mode = false;
 std::atomic<bool> g_window_closed(false);
+std::atomic<bool> g_countdown_ended(false);
 
 void signal_handler(int signal) {
   // Properly shut down the application when receiving termination signals
@@ -60,6 +61,23 @@ void handle_window_closed() {
   jetpack::debug::print("Main",
                         "Window closed callback triggered, initiating shutdown",
                         g_debug_mode);
+  g_window_closed = true;
+}
+
+void handle_countdown_end() {
+  // Callback triggered when the end game countdown finishes
+  jetpack::debug::print("Main",
+                        "Game end countdown finished, sending "
+                        "CLIENT_DISCONNECT and initiating shutdown",
+                        g_debug_mode);
+
+  g_countdown_ended = true;
+
+  if (g_network) {
+    g_network->disconnect();
+    g_network->stop();
+  }
+
   g_window_closed = true;
 }
 
@@ -135,6 +153,8 @@ int main(int argc, char *argv[]) {
     g_graphics = graphics.get();
 
     graphics->setOnWindowClosedCallback(handle_window_closed);
+    graphics->setOnCountdownEndCallback(
+        handle_countdown_end);
 
     // Connect to the server
     jetpack::debug::print("Main",

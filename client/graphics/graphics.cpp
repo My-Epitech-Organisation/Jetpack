@@ -113,6 +113,10 @@ void Graphics::setOnWindowClosedCallback(std::function<void()> callback) {
   inputHandler_->setOnWindowClosedCallback(callback);
 }
 
+void Graphics::setOnCountdownEndCallback(std::function<void()> callback) {
+  renderer_->setOnCountdownEndCallback(callback);
+}
+
 void Graphics::processEvents() {
   if (!window_)
     return;

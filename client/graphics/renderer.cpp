@@ -7,6 +7,7 @@
 */
 
 #include "renderer.hpp"
+#include <chrono>
 #include <sstream>
 
 namespace jetpack {
@@ -14,7 +15,8 @@ namespace graphics {
 
 Renderer::Renderer(GameState *gameState, bool debugMode)
     : gameState_(gameState), debugMode_(debugMode), font_(nullptr),
-      cameraOffsetX_(0.0f) {
+      gameEndOverlayActive_(false), shutdownCountdownSeconds_(5),
+      onCountdownEndCallback_(nullptr), cameraOffsetX_(0.0f) {
 
   // Initialize views with default virtual screen size
   gameView_.setSize(virtualWidth_, virtualHeight_);
@@ -66,6 +68,32 @@ void Renderer::render(sf::RenderWindow *window) {
     // Set the UI view for interface elements
     window->setView(uiView_);
     renderUI(window, *font_);
+
+    // Check if the game has ended and we should display the overlay
+    if (gameState_->hasGameEnded()) {
+      // Initialize the game end overlay if not already active
+      if (!gameEndOverlayActive_) {
+        gameEndOverlayActive_ = true;
+        gameEndTime_ = std::chrono::steady_clock::now();
+      }
+
+      // Render the game end overlay
+      window->setView(uiView_);
+      renderGameEndScreen(window, *font_);
+
+      // Check if countdown has finished
+      auto currentTime = std::chrono::steady_clock::now();
+      auto elapsedSeconds = std::chrono::duration_cast<std::chrono::seconds>(
+                                currentTime - gameEndTime_)
+                                .count();
+
+      if (elapsedSeconds >= shutdownCountdownSeconds_) {
+        if (onCountdownEndCallback_) {
+          onCountdownEndCallback_();
+        }
+        window->close();
+      }
+    }
   } else {
     // Use UI view for connecting message
     window->setView(uiView_);
@@ -93,6 +121,28 @@ void Renderer::renderMap(sf::RenderWindow *window) {
   if (mapData.empty())
     return;
 
+  // Get player states to check for coin collection
+  auto players = gameState_->getPlayerStates();
+  uint8_t localPlayerId = gameState_->getAssignedId();
+
+  // Check for newly collected coins and add them to appropriate collections
+  for (const auto &player : players) {
+    if (player.collectedCoin) {
+      // Convert normalized server coordinates to map tile coordinates
+      sf::Vector2f displayPos =
+          convertServerToDisplayCoords(player.posX, player.posY);
+      uint16_t tileX = static_cast<uint16_t>(displayPos.x / TILE_SIZE);
+      uint16_t tileY = static_cast<uint16_t>(displayPos.y / TILE_SIZE);
+
+      // Add the collected coin to the appropriate collection
+      if (player.id == localPlayerId) {
+        gameState_->addCollectedCoinByLocalPlayer(tileX, tileY);
+      } else {
+        gameState_->addCollectedCoinByOtherPlayer(tileX, tileY);
+      }
+    }
+  }
+
   for (uint16_t y = 0; y < mapHeight; ++y) {
     for (uint16_t x = 0; x < mapWidth; ++x) {
       size_t index = y * mapWidth + x;
@@ -108,8 +158,27 @@ void Renderer::renderMap(sf::RenderWindow *window) {
         break;
       }
       case protocol::COIN: {
+        // Vérifier si cette pièce a été collectée par le joueur local et/ou d'autres joueurs
+        bool collectedByLocalPlayer = gameState_->isCoinCollectedByLocalPlayer(x, y);
+        bool collectedByOtherPlayer = gameState_->isCoinCollectedByOtherPlayer(x, y);
+
+        // Cas 1: Collectée par les deux types de joueurs - ne pas l'afficher du tout
+        if (collectedByLocalPlayer && collectedByOtherPlayer) {
+          break;
+        }
+        
+        // Cas 2: Collectée uniquement par le joueur local - afficher en gris
+        if (collectedByLocalPlayer) {
+          coinShape_.setFillColor(sf::Color(150, 150, 150)); // Gris
+        }
+        // Cas 3: Collectée par un autre joueur uniquement ou par personne - afficher en jaune
+        else {
+          coinShape_.setFillColor(sf::Color::Yellow);
+        }
+        
+        // Afficher la pièce
         coinShape_.setPosition(x * TILE_SIZE + TILE_SIZE / 2,
-                               y * TILE_SIZE + TILE_SIZE / 2);
+                              y * TILE_SIZE + TILE_SIZE / 2);
         window->draw(coinShape_);
         break;
       }
@@ -130,11 +199,6 @@ void Renderer::renderPlayers(sf::RenderWindow *window) {
   auto players = gameState_->getPlayerStates();
   uint8_t currentPlayerId = gameState_->getAssignedId();
 
-  // Get map dimensions to calculate Y position ratio
-  std::pair<uint16_t, uint16_t> mapDimensions = gameState_->getMapDimensions();
-  uint16_t mapHeight = mapDimensions.second;
-  float mapTotalHeight = mapHeight * TILE_SIZE; // Total map height in pixels
-
   for (const auto &player : players) {
     // Skip rendering dead players
     if (!player.alive)
@@ -146,22 +210,20 @@ void Renderer::renderPlayers(sf::RenderWindow *window) {
 
     playerShape_.setFillColor(playerColor);
 
-    // Adjust player position for display
-    float displayX = player.posX;
+    // Convert server coordinates to display coordinates
+    sf::Vector2f displayPos =
+        convertServerToDisplayCoords(player.posX, player.posY);
 
-    // Convert Y position from ratio (0-1000) to actual pixel position
-    float displayY = (player.posY / 1000.0f) * mapTotalHeight;
-
-    playerShape_.setPosition(displayX, displayY);
+    playerShape_.setPosition(displayPos.x, displayPos.y);
     window->draw(playerShape_);
 
-    // Render player score (also fixed at same position)
+    // Render player score
     sf::Text scoreText;
     scoreText.setFont(*font_);
     scoreText.setString(std::to_string(player.score));
     scoreText.setCharacterSize(12);
     scoreText.setFillColor(sf::Color::White);
-    scoreText.setPosition(displayX - 5, displayY - 25);
+    scoreText.setPosition(displayPos.x - 5, displayPos.y - 25);
     window->draw(scoreText);
   }
 }
@@ -230,7 +292,7 @@ void Renderer::renderDebugInfo(sf::RenderWindow *window, const sf::Font &font) {
     ss << "  ID " << static_cast<int>(player.id) << " (" << player.posX << ","
        << player.posY << ") "
        << "Score: " << player.score << (player.alive ? "" : " [DEAD]")
-       << std::endl;
+       << (player.collectedCoin ? " [COIN]" : "") << std::endl;
   }
 
   debugText.setString(ss.str());
@@ -285,25 +347,191 @@ void Renderer::handleResize(sf::RenderWindow *window, unsigned int width,
 void Renderer::updateCamera() {
   // Find the local player
   auto players = gameState_->getPlayerStates();
+  std::pair<uint16_t, uint16_t> mapDimensions = gameState_->getMapDimensions();
+  uint16_t mapWidth = mapDimensions.first;
+  uint16_t mapHeight = mapDimensions.second;
+
+  // Calculate the total width and height of the map in pixels
+  float mapTotalWidth = mapWidth * TILE_SIZE;
+  float mapTotalHeight = mapHeight * TILE_SIZE;
 
   for (const auto &player : players) {
     if (player.id == gameState_->getAssignedId() && player.alive) {
+      // Convert server coordinates to display coordinates
+      sf::Vector2f displayPos =
+          convertServerToDisplayCoords(player.posX, player.posY);
 
-      // If player is beyond the fixed position, calculate camera offset
-      if (player.posX > FIXED_PLAYER_X) {
-        cameraOffsetX_ = player.posX - FIXED_PLAYER_X;
+      // Horizontal camera update
+      float cameraOffsetX = 0.0f;
+      if (displayPos.x > FIXED_PLAYER_X) {
+        cameraOffsetX = displayPos.x - FIXED_PLAYER_X;
 
-        // Update the game view center (X based on offset, Y based on ratio)
-        gameView_.setCenter(virtualWidth_ / 2.0f + cameraOffsetX_,
-                            virtualHeight_ / 2.0f);
-      } else {
-        // Player is still in entry phase, reset camera
-        cameraOffsetX_ = 0.0f;
-        gameView_.setCenter(virtualWidth_ / 2.0f, virtualHeight_ / 2.0f);
+        // Make sure we don't scroll too far at the end of the map
+        float maxScrollX = mapTotalWidth - virtualWidth_;
+        if (cameraOffsetX > maxScrollX) {
+          cameraOffsetX = maxScrollX;
+        }
       }
+
+      // Vertical camera update - center the player vertically
+      float cameraOffsetY = 0.0f;
+
+      // Target the player position vertically, but stay within map bounds
+      cameraOffsetY = displayPos.y - virtualHeight_ / 2.0f;
+
+      // Limit camera to map boundaries (top and bottom)
+      if (cameraOffsetY < 0) {
+        cameraOffsetY = 0;
+      } else if (cameraOffsetY > mapTotalHeight - virtualHeight_) {
+        cameraOffsetY = mapTotalHeight - virtualHeight_;
+      }
+
+      // Update the game view center with both X and Y offsets
+      gameView_.setCenter(virtualWidth_ / 2.0f + cameraOffsetX,
+                          virtualHeight_ / 2.0f + cameraOffsetY);
+
+      // Store the horizontal offset for later use
+      cameraOffsetX_ = cameraOffsetX;
+
       break;
     }
   }
+}
+
+sf::Vector2f Renderer::convertServerToDisplayCoords(uint16_t serverX,
+                                                    uint16_t serverY) {
+  // Get map dimensions to calculate position ratios
+  std::pair<uint16_t, uint16_t> mapDimensions = gameState_->getMapDimensions();
+  uint16_t mapWidth = mapDimensions.first;
+  uint16_t mapHeight = mapDimensions.second;
+
+  // Calculate the total width of the map in pixels
+  float mapTotalWidth = mapWidth * TILE_SIZE;
+  float mapTotalHeight = mapHeight * TILE_SIZE;
+
+  // Convert server X (0-1000 range) to actual display X based on map width
+  float displayX = (serverX / 1000.0f) * mapTotalWidth;
+
+  // Convert server Y (0-1000 range) to actual display Y based on map height
+  float displayY = (serverY / 1000.0f) * mapTotalHeight;
+
+  return sf::Vector2f(displayX, displayY);
+}
+
+void Renderer::renderGameEndScreen(sf::RenderWindow *window,
+                                   const sf::Font &font) {
+  // Create a black semi-transparent overlay
+  sf::RectangleShape overlay;
+  overlay.setSize(sf::Vector2f(virtualWidth_, virtualHeight_));
+  overlay.setFillColor(sf::Color(0, 0, 0, 230)); // Black with transparency
+  window->draw(overlay);
+
+  // Get the time left in countdown
+  auto currentTime = std::chrono::steady_clock::now();
+  auto elapsedSeconds = std::chrono::duration_cast<std::chrono::seconds>(
+                            currentTime - gameEndTime_)
+                            .count();
+  int timeLeft = shutdownCountdownSeconds_ - static_cast<int>(elapsedSeconds);
+
+  // Get player data
+  auto players = gameState_->getPlayerStates();
+  uint8_t winnerId = gameState_->getWinnerId();
+  uint8_t localPlayerId = gameState_->getAssignedId();
+
+  // Create the main game over text
+  sf::Text gameOverText;
+  gameOverText.setFont(font);
+  gameOverText.setCharacterSize(48);
+  gameOverText.setFillColor(sf::Color::White);
+
+  // Set the main message based on win/loss status
+  if (winnerId == protocol::NO_WINNER) {
+    gameOverText.setString("GAME OVER - DRAW");
+  } else if (winnerId == localPlayerId) {
+    gameOverText.setString("YOU WIN!");
+    gameOverText.setFillColor(sf::Color::Green);
+  } else {
+    gameOverText.setString("YOU LOSE");
+    gameOverText.setFillColor(sf::Color::Red);
+  }
+
+  // Position the game over text
+  sf::FloatRect gameOverBounds = gameOverText.getLocalBounds();
+  gameOverText.setPosition(virtualWidth_ / 2.0f - gameOverBounds.width / 2.0f,
+                           virtualHeight_ / 2.0f - 100 -
+                               gameOverBounds.height / 2.0f);
+
+  // Draw the main title
+  window->draw(gameOverText);
+
+  // Now render player scores
+  sf::Text scoresTitle;
+  scoresTitle.setFont(font);
+  scoresTitle.setString("PLAYER SCORES:");
+  scoresTitle.setCharacterSize(24);
+  scoresTitle.setFillColor(sf::Color::White);
+
+  // Position the scores title
+  sf::FloatRect scoresTitleBounds = scoresTitle.getLocalBounds();
+  scoresTitle.setPosition(virtualWidth_ / 2.0f - scoresTitleBounds.width / 2.0f,
+                          gameOverText.getPosition().y + gameOverBounds.height +
+                              40);
+
+  window->draw(scoresTitle);
+
+  // Render each player's score
+  float yOffset = scoresTitle.getPosition().y + scoresTitleBounds.height + 20;
+  for (const auto &player : players) {
+    sf::Text playerText;
+    playerText.setFont(font);
+
+    std::stringstream ss;
+    ss << "Player " << static_cast<int>(player.id) << ": " << player.score
+       << " points";
+    if (player.id == localPlayerId) {
+      ss << " (You)";
+    }
+    if (!player.alive) {
+      ss << " [DEAD]";
+    }
+
+    playerText.setString(ss.str());
+    playerText.setCharacterSize(20);
+
+    // Local player is highlighted
+    if (player.id == localPlayerId) {
+      playerText.setFillColor(sf::Color::Yellow);
+    } else {
+      playerText.setFillColor(sf::Color::White);
+    }
+
+    // Position the player text
+    sf::FloatRect playerBounds = playerText.getLocalBounds();
+    playerText.setPosition(virtualWidth_ / 2.0f - playerBounds.width / 2.0f,
+                           yOffset);
+
+    window->draw(playerText);
+    yOffset += 30; // Spacing between player entries
+  }
+
+  // Render the countdown timer
+  sf::Text countdownText;
+  countdownText.setFont(font);
+  countdownText.setString("Closing in " + std::to_string(timeLeft) +
+                          " seconds...");
+  countdownText.setCharacterSize(24);
+  countdownText.setFillColor(sf::Color::White);
+
+  // Position the countdown at the bottom
+  sf::FloatRect countdownBounds = countdownText.getLocalBounds();
+  countdownText.setPosition(virtualWidth_ / 2.0f - countdownBounds.width / 2.0f,
+                            virtualHeight_ - 100);
+
+  window->draw(countdownText);
+}
+
+void Renderer::setOnCountdownEndCallback(std::function<void()> callback) {
+  onCountdownEndCallback_ = callback;
 }
 
 } // namespace graphics

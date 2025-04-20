@@ -12,6 +12,8 @@
 #include "protocol.hpp"
 #include <atomic>
 #include <mutex>
+#include <set>
+#include <utility>
 #include <vector>
 
 namespace jetpack {
@@ -34,6 +36,8 @@ public:
   void setPlayerStates(const std::vector<protocol::PlayerState> &states);
   void setCurrentTick(uint32_t tick);
   void setGameEnded(bool ended, uint8_t winnerId);
+  void addCollectedCoinByLocalPlayer(uint16_t tileX, uint16_t tileY);
+  void addCollectedCoinByOtherPlayer(uint16_t tileX, uint16_t tileY);
 
   // Thread-safe getters
   bool isConnected() const;
@@ -46,6 +50,8 @@ public:
   uint32_t getCurrentTick() const;
   bool hasGameEnded() const;
   uint8_t getWinnerId() const;
+  bool isCoinCollectedByLocalPlayer(uint16_t tileX, uint16_t tileY) const;
+  bool isCoinCollectedByOtherPlayer(uint16_t tileX, uint16_t tileY) const;
 
 private:
   mutable std::mutex mutex_;
@@ -62,6 +68,10 @@ private:
   // Player states
   std::vector<protocol::PlayerState> playerStates;
   uint32_t currentTick;
+
+  // Collected coins positions (tileX, tileY)
+  std::set<std::pair<uint16_t, uint16_t>> coinsCollectedByLocalPlayer;
+  std::set<std::pair<uint16_t, uint16_t>> coinsCollectedByOtherPlayers;
 
   // Game end state
   bool gameEnded;

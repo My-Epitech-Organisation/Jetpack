@@ -22,8 +22,6 @@ void handle_message(server_t *server, int client_id, char *payload)
             handle_error("Client disconnected", server);
             break;
         default:
-            printf("Unknown message (type: 0x%02X) from client %d\n",
-                server->message_type, client_id);
             break;
     }
 }

@@ -22,7 +22,7 @@ void send_game_start(server_t *server, int client_fd)
 
 void send_game_state(server_t *server, int client_fd)
 {
-    size_t player_data_size = server->client_count * 8;
+    size_t player_data_size = server->client_count * 9;
     uint16_t total_payload_size = 4 + 1 + player_data_size;
     uint16_t total_msg_size = 4 + total_payload_size;
     uint8_t *buffer = malloc(total_msg_size);
@@ -35,7 +35,7 @@ void send_game_state(server_t *server, int client_fd)
     offset = 9;
     for (int i = 0; i < server->client_count; i++) {
         write_data_state_payload(buffer, server->client[i], offset, i);
-        offset += 8;
+        offset += 9;
     }
     if (!send_with_write(client_fd, buffer, total_msg_size))
         perror("send_with_write GAME_STATE");
@@ -48,4 +48,20 @@ void send_game_state_to_all_clients(server_t *server)
 {
     for (int i = 0; i < server->client_count; i++)
         send_game_state(server, server->client[i]->fd);
+}
+
+void send_game_end(server_t *server, uint8_t reason, uint8_t winner_id)
+{
+    uint8_t buffer[6];
+    uint16_t length = 6;
+
+    write_header(buffer, GAME_END, length);
+    buffer[4] = reason;
+    buffer[5] = winner_id;
+    for (int i = 0; i < server->client_count; i++) {
+        if (!send_with_write(server->client[i]->fd, buffer, length))
+            perror("send_with_write GAME_END");
+        print_debug_info_package_sent(server, get_type_string_prev(buffer[1]),
+            buffer, length);
+    }
 }

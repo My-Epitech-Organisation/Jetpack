@@ -7,34 +7,27 @@
 
 #include "includes/server.h"
 
-void check_limits(client_t *client, server_t *server)
-{
-    if (client->x >= server->map_cols * 170)
-        client->x = server->map_cols * 170 - 1;
-    if (client->x <= 0)
-        client->x = 0;
-    if (client->y >= server->map_rows * 170)
-        client->y = server->map_rows * 170 - 1;
-    if (client->y <= 0)
-        client->y = 0;
-}
-
 void update_game_state(server_t *server)
 {
     client_t *client;
+    uint8_t alive_player_id = 0xFF;
+    int alive_count = 0;
 
+    if (!check_alive_begin(server, &alive_count, &alive_player_id))
+        return;
     for (int i = 0; i < server->client_count; i++) {
         read_client(server, i);
         client = server->client[i];
+        client->collected_coin = false;
         if (!client->is_alive)
             continue;
-        if (client->jetpack)
-            client->y -= 40;
-        else
-            client->y += 50;
-        client->x += 50;
-        check_limits(client, server);
+        check_jetpack(client, server);
+        check_limits(client);
+        check_entities_collisions(client, server);
+        check_alive_end(client, &alive_count, &alive_player_id, i);
     }
+    if (!client->is_alive || (alive_count == 1 && server->client_count > 1))
+        send_game_end(server, 2, alive_player_id);
 }
 
 void game_loop(server_t *server)
