@@ -47,7 +47,7 @@ void update_game_state(server_t *server)
             continue;
         if (client->jetpack) {
             printf("Client %d is using jetpack!\n", client->fd);
-            client->y -= 40;
+            client->y = client->y < 40 ? 0 : client->y - 40;
         } else
             client->y += 50;
         client->x += 50;
