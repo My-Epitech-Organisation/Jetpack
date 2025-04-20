@@ -9,9 +9,6 @@
 
 void close_everything(server_t *server)
 {
-    for (size_t i = 0; i < server->coin_count; i++)
-        free(server->coins[i].is_collected);
-    free(server->coins);
     for (int i = 0; i < server->client_count; i++) {
         close(server->client[i]->fd);
         free(server->client[i]);

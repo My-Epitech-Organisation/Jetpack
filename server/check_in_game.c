@@ -32,11 +32,19 @@ void check_entities_collisions(client_t *client, server_t *server)
     if (!is_in_bounds(server, row, col))
         return;
     entity = server->map[row][col];
-    if (entity == 'e') {
-        handle_electic(client);
-        return;
+    switch (entity) {
+        case 'c':
+            handle_coin(client, server, row, col);
+            break;
+        case 'd':
+            handle_doin(client, server, row, col);
+            break;
+        case 'e':
+            handle_electic(client);
+            break;
+        default:
+            break;
     }
-    handle_coin(client, server, row, col);
 }
 
 bool initialize_alive_tracking(server_t *server, int *alive_count,

@@ -10,29 +10,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-static void coins_handler(server_t *server)
-{
-    size_t estimated_coin_count = server->map_rows * server->map_cols;
-    coin_t coin;
-
-    server->coins = malloc(sizeof(coin_t) * estimated_coin_count);
-    if (!server->coins)
-        handle_error("malloc coins", server);
-    server->coin_count = 0;
-    for (size_t row = 0; row < server->map_rows; row++) {
-        for (size_t col = 0; col < server->map_cols; col++) {
-            if (server->map[row][col] == 'c') {
-                coin.row = row;
-                coin.col = col;
-                coin.is_collected = calloc(MAX_CLIENTS, sizeof(bool));
-                if (!coin.is_collected)
-                    handle_error("calloc coin collected_by", server);
-                server->coins[server->coin_count++] = coin;
-            }
-        }
-    }
-}
-
 static void close_and_free(FILE *file, char *line)
 {
     if (file)
@@ -110,5 +87,4 @@ void load_map(server_t *server)
     get_map_size(server, &server->map_rows, &server->map_cols);
     server->map = allocate_map(server);
     fill_map(server->map_path, server->map, server);
-    coins_handler(server);
 }
