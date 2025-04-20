@@ -7,7 +7,7 @@
 
 #include "includes/server.h"
 
-void check_limits(client_t *client, server_t *server)
+void check_limits(client_t *client)
 {
     if (client->x >= 1000)
         client->x = 1000 - 1;
@@ -51,7 +51,7 @@ void update_game_state(server_t *server)
         } else
             client->y += 50;
         client->x += 50;
-        check_limits(client, server);
+        check_limits(client);
         check_coins(client, server);
     }
 }
