@@ -52,23 +52,16 @@ void send_game_state_to_all_clients(server_t *server)
 
 void send_game_end(server_t *server, uint8_t reason, uint8_t winner_id)
 {
-    uint8_t buffer[6]; // 4 octets d'en-tête + 1 octet de raison + 1 octet d'ID de gagnant
+    uint8_t buffer[6];
     uint16_t length = 6;
 
-    // Écriture de l'en-tête
     write_header(buffer, GAME_END, length);
-    
-    // Ajout de la raison et de l'ID du gagnant au payload
     buffer[4] = reason;
     buffer[5] = winner_id;
-    
-    // Envoi du message à tous les clients
     for (int i = 0; i < server->client_count; i++) {
         if (!send_with_write(server->client[i]->fd, buffer, length))
             perror("send_with_write GAME_END");
         print_debug_info_package_sent(server, get_type_string_prev(buffer[1]),
             buffer, length);
     }
-    
-    printf("Game end message sent. Reason: %d, Winner: %d\n", reason, winner_id);
 }
