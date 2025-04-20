@@ -48,16 +48,18 @@ void print_debug_info_package_received(server_t *server, char *context,
     fflush(stdout);
 }
 
-void print_debug_info_package_sent(const char *context,
+void print_debug_info_package_sent(server_t *server,
     const char *type_name, const unsigned char *packet, size_t packet_size)
 {
     time_t now = time(NULL);
     struct tm *tm_info = localtime(&now);
     char time_buf[9];
 
+    if (!server->debug_mode)
+        return;
     strftime(time_buf, sizeof(time_buf), "%H:%M:%S", tm_info);
-    printf("[%s][%s] Sent packet: type=0x%02X (%s), length=%zu bytes\n",
-        time_buf, context, packet[1], type_name, packet_size);
+    printf("[Server][%s] Sent packet: type=0x%02X (%s), length=%zu bytes\n",
+        time_buf, packet[1], type_name, packet_size);
     print_packet_hex(packet, packet + 4, packet_size - 4);
 }
 
