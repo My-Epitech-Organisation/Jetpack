@@ -24,11 +24,12 @@ void check_coins(client_t *client, server_t *server)
     size_t row = client->y / 100;
     size_t col = client->x / 100;
 
-    if(row >= server->map_rows || col >= server->map_cols)
+    if (row >= server->map_rows || col >= server->map_cols)
         return;
     if (server->map[row][col] == 'c') {
-        printf("Client %d collected a coin! Score: %d\n", client->fd, client->score);
         client->score++;
+        printf("Client %d collected a coin! Score: %d\n",
+            client->fd, client->score);
         server->map[row][col] = '_';
         client->collected_coin = true;
     }
