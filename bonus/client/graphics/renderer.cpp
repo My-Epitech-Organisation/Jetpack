@@ -489,7 +489,7 @@ void Renderer::renderGameEndScreen(sf::RenderWindow *window,
     ss << "Player " << static_cast<int>(player.id) << ": " << player.score
        << " points";
     if (player.id == localPlayerId) {
-      ss << " (You)";
+      ss << " (gest)";
     }
     if (!player.alive) {
       ss << " [DEAD]";
