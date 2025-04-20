@@ -23,7 +23,7 @@ jetpack::network::Network *g_network = nullptr;
 jetpack::graphics::Graphics *g_graphics = nullptr;
 bool g_debug_mode = false;
 std::atomic<bool> g_window_closed(false);
-std::atomic<bool> g_countdown_ended(false); // New flag for countdown end
+std::atomic<bool> g_countdown_ended(false);
 
 void signal_handler(int signal) {
   // Properly shut down the application when receiving termination signals
@@ -79,8 +79,6 @@ void handle_countdown_end() {
     g_network->stop();
   }
 
-  // Marquer également la fenêtre comme fermée pour terminer la boucle
-  // principale
   g_window_closed = true;
 }
 
@@ -157,8 +155,7 @@ int main(int argc, char *argv[]) {
 
     graphics->setOnWindowClosedCallback(handle_window_closed);
     graphics->setOnCountdownEndCallback(
-        handle_countdown_end); // Configuration du callback de fin de compte à
-                               // rebours
+        handle_countdown_end);
 
     // Connect to the server
     jetpack::debug::print("Main",
