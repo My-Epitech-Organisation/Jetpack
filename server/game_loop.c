@@ -13,18 +13,16 @@ void update_game_state(server_t *server)
     uint8_t alive_player_id = 0xFF;
     int alive_count = 0;
 
-    if (!check_alive_begin(server, &alive_count, &alive_player_id))
+    if (!initialize_alive_tracking(server, &alive_count, &alive_player_id))
         return;
     for (int i = 0; i < server->client_count; i++) {
-        read_client(server, i);
         client = server->client[i];
-        client->collected_coin = false;
-        if (!client->is_alive)
-            continue;
-        check_jetpack(client, server);
-        check_limits(client);
-        check_entities_collisions(client, server);
-        check_alive_end(client, &alive_count, &alive_player_id, i);
+        read_client(server, i);
+        process_client_state(client, server, alive_player_id);
+        if (client->is_alive) {
+            alive_count++;
+            alive_player_id = i;
+        }
     }
     if (!client->is_alive || (alive_count == 1 && server->client_count > 1))
         send_game_end(server, 2, alive_player_id);

@@ -8,41 +8,38 @@
 #include "includes/server.h"
 
 
-void check_limits(client_t *client)
+bool check_limits(client_t *client)
 {
-    if (client->x >= 1000)
+    if (client->x >= 1000) {
         client->x = 1000 - 1;
+        return true;
+    }
     if (client->x <= 0)
         client->x = 0;
     if (client->y >= 1000)
         client->y = 1000 - 1;
     if (client->y <= 0)
         client->y = 0;
+    return false;
 }
 
 void check_entities_collisions(client_t *client, server_t *server)
 {
     size_t row = client->y * server->map_rows / 1000;
     size_t col = client->x * server->map_cols / 1000;
+    char entity;
 
-    if (row >= server->map_rows || col >= server->map_cols)
+    if (!is_in_bounds(server, row, col))
         return;
-    if (server->map[row][col] == 'd') {
-        client->score++;
-        server->map[row][col] = '_';
-        client->collected_coin = true;
+    entity = server->map[row][col];
+    if (entity == 'e') {
+        handle_electic(client);
+        return;
     }
-    if (server->map[row][col] == 'c') {
-        client->score++;
-        server->map[row][col] = 'd';
-        client->collected_coin = true;
-    }
-    if (server->map[row][col] == 'e') {
-        client->is_alive = false;
-    }
+    handle_coin(client, server, row, col);
 }
 
-bool check_alive_begin(server_t *server, int *alive_count,
+bool initialize_alive_tracking(server_t *server, int *alive_count,
     uint8_t *alive_player_id)
 {
     for (int i = 0; i < server->client_count; i++) {
@@ -59,13 +56,16 @@ bool check_alive_begin(server_t *server, int *alive_count,
     return true;
 }
 
-void check_alive_end(client_t *client, int *alive_count,
-    uint8_t *alive_player_id, int i)
+void process_client_state(client_t *client, server_t *server,
+    uint8_t alive_player_id)
 {
-    if (client->is_alive) {
-        (*alive_count)++;
-        *alive_player_id = i;
-    }
+    client->collected_coin = false;
+    if (!client->is_alive)
+        return;
+    check_jetpack(client, server);
+    if (check_limits(client))
+        send_game_end(server, 1, alive_player_id);
+    check_entities_collisions(client, server);
 }
 
 void check_jetpack(client_t *client, server_t *server)
