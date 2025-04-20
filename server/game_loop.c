@@ -35,6 +35,21 @@ void check_coins(client_t *client, server_t *server)
     }
 }
 
+void check_laser(client_t *client, server_t *server)
+{
+    size_t row = client->y * server->map_rows / 1000;
+    size_t col = client->x * server->map_cols / 1000;
+
+    if (row >= server->map_rows || col >= server->map_cols)
+        return;
+    if (server->map[row][col] == 'e') {
+        printf("Client %d touched a laser! Score: %d\n",
+            client->fd, client->score);
+        server->map[row][col] = '_';
+        client->is_alive = false;
+    }
+}
+
 void update_game_state(server_t *server)
 {
     client_t *client;
@@ -54,6 +69,7 @@ void update_game_state(server_t *server)
         client->x += (5 * 100 / server->map_cols);
         check_limits(client);
         check_coins(client, server);
+        check_laser(client, server);
     }
 }
 
