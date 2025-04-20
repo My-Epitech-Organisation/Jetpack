@@ -63,7 +63,8 @@ void GameState::addCollectedCoin(uint16_t tileX, uint16_t tileY) {
   collectedCoins.insert({tileX, tileY});
 }
 
-const std::set<std::pair<uint16_t, uint16_t>>& GameState::getCollectedCoins() const {
+const std::set<std::pair<uint16_t, uint16_t>> &
+GameState::getCollectedCoins() const {
   std::lock_guard<std::mutex> lock(mutex_);
   return collectedCoins;
 }

@@ -12,9 +12,9 @@
 #include "protocol.hpp"
 #include <atomic>
 #include <mutex>
-#include <vector>
 #include <set>
 #include <utility>
+#include <vector>
 
 namespace jetpack {
 
@@ -49,7 +49,7 @@ public:
   uint32_t getCurrentTick() const;
   bool hasGameEnded() const;
   uint8_t getWinnerId() const;
-  const std::set<std::pair<uint16_t, uint16_t>>& getCollectedCoins() const;
+  const std::set<std::pair<uint16_t, uint16_t>> &getCollectedCoins() const;
 
 private:
   mutable std::mutex mutex_;

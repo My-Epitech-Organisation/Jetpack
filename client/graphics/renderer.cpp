@@ -125,7 +125,7 @@ void Renderer::renderMap(sf::RenderWindow *window) {
   auto players = gameState_->getPlayerStates();
 
   // Get persistent collected coins from gameState
-  const auto& persistentCollectedCoins = gameState_->getCollectedCoins();
+  const auto &persistentCollectedCoins = gameState_->getCollectedCoins();
 
   // Check for newly collected coins and add them to persistent storage
   for (const auto &player : players) {
@@ -135,7 +135,7 @@ void Renderer::renderMap(sf::RenderWindow *window) {
           convertServerToDisplayCoords(player.posX, player.posY);
       uint16_t tileX = static_cast<uint16_t>(displayPos.x / TILE_SIZE);
       uint16_t tileY = static_cast<uint16_t>(displayPos.y / TILE_SIZE);
-      
+
       // Add to persistent storage if it's a new coin
       gameState_->addCollectedCoin(tileX, tileY);
     }
@@ -157,7 +157,8 @@ void Renderer::renderMap(sf::RenderWindow *window) {
       }
       case protocol::COIN: {
         // Check if this coin was collected using the persistent storage
-        bool coinCollected = persistentCollectedCoins.find({x, y}) != persistentCollectedCoins.end();
+        bool coinCollected = persistentCollectedCoins.find({x, y}) !=
+                             persistentCollectedCoins.end();
 
         // Change color if coin was collected
         if (coinCollected) {
