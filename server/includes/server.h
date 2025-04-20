@@ -136,7 +136,7 @@ void print_debug_all(server_t *server, char *context, char *payload,
 // In game functions
 void check_jetpack(client_t *client, server_t *server);
 void check_limits(client_t *client);
-void check_entities_colisions(client_t *client, server_t *server);
+void check_entities_collisions(client_t *client, server_t *server);
 bool check_alive_begin(server_t *server, int *alive_count,
     uint8_t *alive_player_id);
 void check_alive_end(client_t *client, int *alive_count,

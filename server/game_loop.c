@@ -23,7 +23,7 @@ void update_game_state(server_t *server)
             continue;
         check_jetpack(client, server);
         check_limits(client);
-        check_entities_colisions(client, server);
+        check_entities_collisions(client, server);
         check_alive_end(client, &alive_count, &alive_player_id, i);
     }
     if (!client->is_alive || (alive_count == 1 && server->client_count > 1))

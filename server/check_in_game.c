@@ -20,7 +20,7 @@ void check_limits(client_t *client)
         client->y = 0;
 }
 
-void check_entities_colisions(client_t *client, server_t *server)
+void check_entities_collisions(client_t *client, server_t *server)
 {
     size_t row = client->y * server->map_rows / 1000;
     size_t col = client->x * server->map_cols / 1000;
