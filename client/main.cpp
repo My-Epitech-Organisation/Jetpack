@@ -74,7 +74,6 @@ void handle_countdown_end() {
   g_countdown_ended = true;
 
   if (g_network) {
-    // Envoyer la requête CLIENT_DISCONNECT au serveur
     g_network->disconnect();
     g_network->stop();
   }
