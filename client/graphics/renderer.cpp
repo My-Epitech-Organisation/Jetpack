@@ -7,8 +7,8 @@
 */
 
 #include "renderer.hpp"
-#include <sstream>
 #include <chrono>
+#include <sstream>
 
 namespace jetpack {
 namespace graphics {
@@ -68,7 +68,7 @@ void Renderer::render(sf::RenderWindow *window) {
     // Set the UI view for interface elements
     window->setView(uiView_);
     renderUI(window, *font_);
-    
+
     // Check if the game has ended and we should display the overlay
     if (gameState_->hasGameEnded()) {
       // Initialize the game end overlay if not already active
@@ -76,16 +76,17 @@ void Renderer::render(sf::RenderWindow *window) {
         gameEndOverlayActive_ = true;
         gameEndTime_ = std::chrono::steady_clock::now();
       }
-      
+
       // Render the game end overlay
       window->setView(uiView_);
       renderGameEndScreen(window, *font_);
-      
+
       // Check if countdown has finished
       auto currentTime = std::chrono::steady_clock::now();
       auto elapsedSeconds = std::chrono::duration_cast<std::chrono::seconds>(
-          currentTime - gameEndTime_).count();
-          
+                                currentTime - gameEndTime_)
+                                .count();
+
       if (elapsedSeconds >= shutdownCountdownSeconds_) {
         if (onCountdownEndCallback_) {
           onCountdownEndCallback_();
@@ -410,7 +411,8 @@ sf::Vector2f Renderer::convertServerToDisplayCoords(uint16_t serverX,
   return sf::Vector2f(displayX, displayY);
 }
 
-void Renderer::renderGameEndScreen(sf::RenderWindow *window, const sf::Font &font) {
+void Renderer::renderGameEndScreen(sf::RenderWindow *window,
+                                   const sf::Font &font) {
   // Create a black semi-transparent overlay
   sf::RectangleShape overlay;
   overlay.setSize(sf::Vector2f(virtualWidth_, virtualHeight_));
@@ -420,20 +422,21 @@ void Renderer::renderGameEndScreen(sf::RenderWindow *window, const sf::Font &fon
   // Get the time left in countdown
   auto currentTime = std::chrono::steady_clock::now();
   auto elapsedSeconds = std::chrono::duration_cast<std::chrono::seconds>(
-      currentTime - gameEndTime_).count();
+                            currentTime - gameEndTime_)
+                            .count();
   int timeLeft = shutdownCountdownSeconds_ - static_cast<int>(elapsedSeconds);
-  
+
   // Get player data
   auto players = gameState_->getPlayerStates();
   uint8_t winnerId = gameState_->getWinnerId();
   uint8_t localPlayerId = gameState_->getAssignedId();
-  
+
   // Create the main game over text
   sf::Text gameOverText;
   gameOverText.setFont(font);
   gameOverText.setCharacterSize(48);
   gameOverText.setFillColor(sf::Color::White);
-  
+
   // Set the main message based on win/loss status
   if (winnerId == protocol::NO_WINNER) {
     gameOverText.setString("GAME OVER - DRAW");
@@ -444,79 +447,79 @@ void Renderer::renderGameEndScreen(sf::RenderWindow *window, const sf::Font &fon
     gameOverText.setString("YOU LOSE");
     gameOverText.setFillColor(sf::Color::Red);
   }
-  
+
   // Position the game over text
   sf::FloatRect gameOverBounds = gameOverText.getLocalBounds();
-  gameOverText.setPosition(
-      virtualWidth_ / 2.0f - gameOverBounds.width / 2.0f,
-      virtualHeight_ / 2.0f - 100 - gameOverBounds.height / 2.0f);
-  
+  gameOverText.setPosition(virtualWidth_ / 2.0f - gameOverBounds.width / 2.0f,
+                           virtualHeight_ / 2.0f - 100 -
+                               gameOverBounds.height / 2.0f);
+
   // Draw the main title
   window->draw(gameOverText);
-  
+
   // Now render player scores
   sf::Text scoresTitle;
   scoresTitle.setFont(font);
   scoresTitle.setString("PLAYER SCORES:");
   scoresTitle.setCharacterSize(24);
   scoresTitle.setFillColor(sf::Color::White);
-  
+
   // Position the scores title
   sf::FloatRect scoresTitleBounds = scoresTitle.getLocalBounds();
-  scoresTitle.setPosition(
-      virtualWidth_ / 2.0f - scoresTitleBounds.width / 2.0f,
-      gameOverText.getPosition().y + gameOverBounds.height + 40);
-  
+  scoresTitle.setPosition(virtualWidth_ / 2.0f - scoresTitleBounds.width / 2.0f,
+                          gameOverText.getPosition().y + gameOverBounds.height +
+                              40);
+
   window->draw(scoresTitle);
-  
+
   // Render each player's score
   float yOffset = scoresTitle.getPosition().y + scoresTitleBounds.height + 20;
   for (const auto &player : players) {
     sf::Text playerText;
     playerText.setFont(font);
-    
+
     std::stringstream ss;
-    ss << "Player " << static_cast<int>(player.id) << ": " << player.score << " points";
+    ss << "Player " << static_cast<int>(player.id) << ": " << player.score
+       << " points";
     if (player.id == localPlayerId) {
       ss << " (You)";
     }
     if (!player.alive) {
       ss << " [DEAD]";
     }
-    
+
     playerText.setString(ss.str());
     playerText.setCharacterSize(20);
-    
+
     // Local player is highlighted
     if (player.id == localPlayerId) {
       playerText.setFillColor(sf::Color::Yellow);
     } else {
       playerText.setFillColor(sf::Color::White);
     }
-    
+
     // Position the player text
     sf::FloatRect playerBounds = playerText.getLocalBounds();
-    playerText.setPosition(
-        virtualWidth_ / 2.0f - playerBounds.width / 2.0f,
-        yOffset);
-    
+    playerText.setPosition(virtualWidth_ / 2.0f - playerBounds.width / 2.0f,
+                           yOffset);
+
     window->draw(playerText);
     yOffset += 30; // Spacing between player entries
   }
-  
+
   // Render the countdown timer
   sf::Text countdownText;
   countdownText.setFont(font);
-  countdownText.setString("Closing in " + std::to_string(timeLeft) + " seconds...");
+  countdownText.setString("Closing in " + std::to_string(timeLeft) +
+                          " seconds...");
   countdownText.setCharacterSize(24);
   countdownText.setFillColor(sf::Color::White);
-  
+
   // Position the countdown at the bottom
   sf::FloatRect countdownBounds = countdownText.getLocalBounds();
-  countdownText.setPosition(
-      virtualWidth_ / 2.0f - countdownBounds.width / 2.0f,
-      virtualHeight_ - 100);
-  
+  countdownText.setPosition(virtualWidth_ / 2.0f - countdownBounds.width / 2.0f,
+                            virtualHeight_ - 100);
+
   window->draw(countdownText);
 }
 

@@ -26,7 +26,7 @@ public:
   void render(sf::RenderWindow *window);
   void handleResize(sf::RenderWindow *window, unsigned int width,
                     unsigned int height);
-  
+
   // Callback for when the countdown ends
   void setOnCountdownEndCallback(std::function<void()> callback);
 

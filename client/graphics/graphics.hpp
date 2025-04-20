@@ -32,7 +32,7 @@ public:
 
   // Function to set callback for window closing event
   void setOnWindowClosedCallback(std::function<void()> callback);
-  
+
   // Function to set callback for when the game end countdown finishes
   void setOnCountdownEndCallback(std::function<void()> callback);
 

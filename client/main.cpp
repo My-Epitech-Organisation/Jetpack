@@ -66,19 +66,21 @@ void handle_window_closed() {
 
 void handle_countdown_end() {
   // Callback triggered when the end game countdown finishes
-  jetpack::debug::print("Main", 
-                        "Game end countdown finished, sending CLIENT_DISCONNECT and initiating shutdown",
+  jetpack::debug::print("Main",
+                        "Game end countdown finished, sending "
+                        "CLIENT_DISCONNECT and initiating shutdown",
                         g_debug_mode);
-  
+
   g_countdown_ended = true;
-  
+
   if (g_network) {
     // Envoyer la requête CLIENT_DISCONNECT au serveur
     g_network->disconnect();
     g_network->stop();
   }
-  
-  // Marquer également la fenêtre comme fermée pour terminer la boucle principale
+
+  // Marquer également la fenêtre comme fermée pour terminer la boucle
+  // principale
   g_window_closed = true;
 }
 
@@ -154,7 +156,9 @@ int main(int argc, char *argv[]) {
     g_graphics = graphics.get();
 
     graphics->setOnWindowClosedCallback(handle_window_closed);
-    graphics->setOnCountdownEndCallback(handle_countdown_end); // Configuration du callback de fin de compte à rebours
+    graphics->setOnCountdownEndCallback(
+        handle_countdown_end); // Configuration du callback de fin de compte à
+                               // rebours
 
     // Connect to the server
     jetpack::debug::print("Main",
