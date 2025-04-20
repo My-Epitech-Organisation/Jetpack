@@ -23,7 +23,7 @@
 #ifndef SERVER_H_
     #define SERVER_H_
 
-    #define MAX_CLIENTS 2
+    #define MAX_CLIENTS 4
     #define MAGIC_BYTE 0xAB
     #define CLIENT_CONNECT 0x01
     #define SERVER_WELCOME 0x02

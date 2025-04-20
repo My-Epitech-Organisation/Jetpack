@@ -7,14 +7,22 @@
 */
 
 #include "debug.hpp"
-#include <arpa/inet.h>
 #include <cstring>
 #include <ctime>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <mutex>
+#include <iomanip>
+#include <sstream>
+#include <chrono>
+
+#ifdef _WIN32
+// Windows doesn't need these includes
+#else
+#include <arpa/inet.h>
 #include <sys/stat.h>
+#endif
 
 namespace jetpack {
 namespace debug {

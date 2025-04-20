@@ -12,14 +12,10 @@
 #include "../gamestate.hpp"
 #include "../protocol.hpp"
 #include "protocol_handlers.hpp"
-#include <arpa/inet.h>
+#include "cross_platform.hpp"
 #include <atomic>
-#include <netinet/in.h>
-#include <poll.h>
 #include <string>
-#include <sys/socket.h>
 #include <thread>
-#include <unistd.h>
 #include <vector>
 
 namespace jetpack {

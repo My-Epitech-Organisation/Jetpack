@@ -8,12 +8,10 @@
 
 #include "network.hpp"
 #include "../debug/debug.hpp"
-#include <arpa/inet.h>
 #include <chrono>
 #include <cstring>
 #include <iomanip>
 #include <iostream>
-#include <netdb.h>
 #include <sstream>
 #include <thread>
 
@@ -26,6 +24,11 @@ Network::Network(const std::string &host, int port, bool debugMode,
       running_(false), gameState_(gameState),
       protocolHandlers_(gameState, debugMode) {
 
+  // Initialiser Winsock sur Windows
+  if (!initializeWinsock()) {
+    std::cerr << "Failed to initialize Winsock" << std::endl;
+  }
+
   pfd_.fd = -1;
   pfd_.events = POLLIN;
   pfd_.revents = 0;
@@ -37,6 +40,9 @@ Network::~Network() {
     debug::logToFile("Network", "Closing socket", debugMode_);
     close(socket_);
   }
+  
+  // Nettoyer Winsock sur Windows
+  cleanupWinsock();
 }
 
 bool Network::connect() {
@@ -211,7 +217,12 @@ bool Network::sendPacket(protocol::PacketType type,
   header.type = type;
   header.length = htons(payload.size() + sizeof(header));
 
+  #ifdef _WIN32
+  int sendResult = send(socket_, reinterpret_cast<const char*>(&header), sizeof(header), 0);
+  if (sendResult != sizeof(header)) {
+  #else
   if (write(socket_, &header, sizeof(header)) != sizeof(header)) {
+  #endif
     debug::logToFile("Network",
                      "Failed to send packet header: " +
                          std::string(strerror(errno)),
@@ -220,8 +231,13 @@ bool Network::sendPacket(protocol::PacketType type,
   }
 
   if (!payload.empty()) {
+    #ifdef _WIN32
+    int sendResult = send(socket_, reinterpret_cast<const char*>(payload.data()), payload.size(), 0);
+    if (sendResult != static_cast<int>(payload.size())) {
+    #else
     if (write(socket_, payload.data(), payload.size()) !=
         static_cast<ssize_t>(payload.size())) {
+    #endif
       debug::logToFile("Network",
                        "Failed to send packet payload: " +
                            std::string(strerror(errno)),
@@ -250,7 +266,12 @@ bool Network::receivePacket(protocol::PacketHeader *header,
   if (socket_ < 0)
     return false;
 
+  #ifdef _WIN32
+  int bytesRead = recv(socket_, reinterpret_cast<char*>(header), sizeof(*header), 0);
+  #else
   ssize_t bytesRead = read(socket_, header, sizeof(*header));
+  #endif
+  
   if (bytesRead != sizeof(*header)) {
     if (bytesRead == 0) {
       debug::logToFile("Network", "Server closed connection", debugMode_);
@@ -282,7 +303,12 @@ bool Network::receivePacket(protocol::PacketHeader *header,
   if (payloadLength > 0) {
     payload->resize(payloadLength);
 
+    #ifdef _WIN32
+    bytesRead = recv(socket_, reinterpret_cast<char*>(payload->data()), payloadLength, 0);
+    #else
     bytesRead = read(socket_, payload->data(), payloadLength);
+    #endif
+    
     if (bytesRead != static_cast<ssize_t>(payloadLength)) {
       debug::logToFile("Network",
                        "Failed to receive full payload: expected " +
