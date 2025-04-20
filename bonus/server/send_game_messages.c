@@ -40,7 +40,7 @@ void send_game_state(server_t *server, int client_fd)
     if (!send_with_write(client_fd, buffer, total_msg_size))
         perror("send_with_write GAME_STATE");
     print_debug_info_package_sent(server, get_type_string_prev(buffer[1]),
-        buffer, sizeof(buffer));
+        buffer, total_msg_size);
     free(buffer);
 }
 

@@ -8,11 +8,10 @@
 #include "includes/server.h"
 
 
-bool check_limits(client_t *client)
+void check_limits(client_t *client)
 {
     if (client->x >= 1000) {
         client->x = 1000 - 1;
-        return true;
     }
     if (client->x <= 0)
         client->x = 0;
@@ -20,7 +19,6 @@ bool check_limits(client_t *client)
         client->y = 1000 - 1;
     if (client->y <= 0)
         client->y = 0;
-    return false;
 }
 
 void check_entities_collisions(client_t *client, server_t *server)
@@ -56,22 +54,20 @@ bool initialize_alive_tracking(server_t *server, int *alive_count,
     return true;
 }
 
-void process_client_state(client_t *client, server_t *server,
-    uint8_t alive_player_id)
+void process_client_state(client_t *client, server_t *server)
 {
     client->collected_coin = false;
     if (!client->is_alive)
         return;
     check_jetpack(client, server);
-    if (check_limits(client))
-        send_game_end(server, 1, alive_player_id);
+    check_limits(client);
     check_entities_collisions(client, server);
 }
 
 void check_jetpack(client_t *client, server_t *server)
 {
     if (client->jetpack) {
-        client->y = client->y < 40 ? 0 :
+        client->y = client->y < client->y - (5 * 100 / server->map_rows) ? 0 :
         client->y - (5 * 100 / server->map_rows);
     } else
         client->y += (3 * 100 / server->map_rows);
