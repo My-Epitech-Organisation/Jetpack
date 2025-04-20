@@ -27,7 +27,7 @@ void server(int argc, char **argv)
     server->fd = set_server_socket(server);
     server->client_count = 0;
     server->start_x = 1;
-    server->start_y = 1;
+    server->start_y = 1000;
     set_bind(server);
     set_listen(server);
     load_map(server);
