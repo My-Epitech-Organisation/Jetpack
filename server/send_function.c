@@ -16,8 +16,10 @@ bool send_with_write(int fd, const void *buffer, size_t length)
 
     while (total_written < length) {
         bytes_written = write(fd, buf + total_written, length - total_written);
-        if (bytes_written == -1 || bytes_written == 0)
+        if (bytes_written == -1)
             return false;
+        if (bytes_written == 0)
+            break;
         total_written += bytes_written;
     }
     return true;
