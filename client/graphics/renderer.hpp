@@ -60,6 +60,9 @@ private:
 
   // Helper method to update camera position based on player position
   void updateCamera();
+
+  // Helper method to convert server coordinates to display coordinates
+  sf::Vector2f convertServerToDisplayCoords(uint16_t serverX, uint16_t serverY);
 };
 
 } // namespace graphics
