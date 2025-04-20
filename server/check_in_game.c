@@ -38,7 +38,6 @@ void check_entities_colisions(client_t *client, server_t *server)
         client->collected_coin = true;
     }
     if (server->map[row][col] == 'e') {
-        server->map[row][col] = '_';
         client->is_alive = false;
     }
 }
