@@ -39,12 +39,14 @@ Table of Contents                                                    Page
      4.7  GAME_END ..................................................    9
      4.8  CLIENT_DISCONNECT .........................................   10
      4.9  DEBUG_INFO (Optional) .....................................   10
-   5.  Overall Flow ................................................  11
-   6.  Map Format and Reassembly ....................................  12
-   7.  Security Considerations ......................................  13
-   8.  Conclusion ...................................................  14
-   Acknowledgements .................................................  14
-   Authors' Addresses ...............................................  14
+     4.10 CLIENT_ACK ................................................   11
+   5.  Reliability Mechanisms .......................................   12
+   6.  Overall Flow ................................................   13
+   7.  Map Format and Reassembly ....................................  14
+   8.  Security Considerations ......................................  15
+   9.  Conclusion ...................................................  16
+   Acknowledgements .................................................  16
+   Authors' Addresses ...............................................  16
 
 =============================================================================
 1.  Introduction
@@ -59,6 +61,7 @@ Table of Contents                                                    Page
        length field.
    *   Modularity  – extensible packet types and optional feature blocks.
    *   Low Latency – minimal framing overhead and compact binary fields.
+   *   Reliability – explicit acknowledgment of messages to ensure delivery.
    *   Ease of Implementation – all integers are big‑endian, and the
        header is uniform across messages.
 
@@ -71,6 +74,7 @@ Table of Contents                                                    Page
    *   Authoritative game‑state broadcasts (with server tick counter).
    *   Deterministic game end and graceful disconnect.
    *   Bidirectional debug messages when clients/servers run with ‑d.
+   *   Client acknowledgment of server messages for reliability.
 
 =============================================================================
 2.  Message Frame and General Format
@@ -114,6 +118,7 @@ Table of Contents                                                    Page
    | 0x07      | GAME_END                  |
    | 0x08      | CLIENT_DISCONNECT         |
    | 0x09      | DEBUG_INFO (optional)     |
+   | 0x0A      | CLIENT_ACK                |
    +-----------+---------------------------+
 
    Higher values are reserved for future extensions.  Implementations
@@ -254,23 +259,72 @@ Broadcasts authoritative positions, scores, life states, and collected bonuses (
      | Len (2 B) | DebugData[Len]
      +-----------+-----------+----------...
 
+4.10.  CLIENT_ACK (0x0A) – Client → Server
+
+   Purpose:  Acknowledges receipt of a server packet and provides feedback
+   about client state.
+
+   Payload:
+
+     0       1       2       3       4       5       6
+     +-------+-------+-------+-------+-------+-------+
+     | ID(1B)|AckType(1B)|    Timestamp (4 B)        |
+     +-------+-------+-------+-------+-------+-------+
+
+   * **ID (1B)**      : The client's player ID.
+   * **AckType (1B)** : The packet type being acknowledged.
+   * **Timestamp (4 B)** : For GAME_STATE packets, the tick being 
+                        acknowledged; for other packet types, zero.
+
 =============================================================================
-5.  Overall Flow
+5.  Reliability Mechanisms
+
+   The Jetpack Protocol implements reliability mechanisms to ensure proper
+   message delivery despite using TCP as its transport layer:
+
+   * **Explicit Acknowledgments**: Clients MUST acknowledge each received
+     server message with a CLIENT_ACK packet. This ensures the server knows
+     when important state updates have been received by clients.
+
+   * **Input vs. Acknowledgment**: When a client has no active input 
+     (jetpack off), it sends a CLIENT_ACK packet instead of a CLIENT_INPUT
+     packet to acknowledge received game state. When the client has active
+     input (jetpack on), the CLIENT_INPUT packet serves as both an input
+     and an implicit acknowledgment.
+
+   * **Timeliness**: Clients should send either CLIENT_INPUT or CLIENT_ACK
+     packets within 50ms of receiving a GAME_STATE packet to maintain 
+     responsive gameplay.
+
+   * **Server Retransmission**: Servers MAY retransmit unacknowledged 
+     critical packets (e.g., MAP_CHUNK, GAME_START) if no CLIENT_ACK is
+     received within a reasonable timeout period.
+
+   This system provides TCP-like reliability guarantees for the protocol
+   while maintaining the responsiveness needed for real-time gameplay.
+
+=============================================================================
+6.  Overall Flow
 
    1.  **TCP Connect**           – client opens a stream to server.
    2.  **CLIENT_CONNECT**        – client proposes an ID and name.
    3.  **SERVER_WELCOME**        – server accepts or refuses; assigns ID.
-   4.  **MAP_CHUNK**×N          – server streams the level map.
-   5.  **GAME_START**            – server signals game commencement.
-   6.  **Gameplay Loop**:
-       • client ⇢ CLIENT_INPUT   – at fixed or event‑driven rate.
-       • server ⇢ GAME_STATE     – each simulation tick.
+   4.  **CLIENT_ACK**            – client acknowledges SERVER_WELCOME.
+   5.  **MAP_CHUNK**×N           – server streams the level map.
+   6.  **CLIENT_ACK**×N          – client acknowledges each MAP_CHUNK.
+   7.  **GAME_START**            – server signals game commencement.
+   8.  **CLIENT_ACK**            – client acknowledges GAME_START.
+   9.  **Gameplay Loop**:
+       • server → GAME_STATE     – each simulation tick.
+       • client → CLIENT_INPUT   – if jetpack is active.
+       • client → CLIENT_ACK     – if no input to send.
        • optional DEBUG_INFO.
-   7.  **GAME_END**              – server declares winner / reason.
-   8.  **CLIENT_DISCONNECT**     – either side ends the session.
+   10. **GAME_END**              – server declares winner / reason.
+   11. **CLIENT_ACK**            – client acknowledges GAME_END.
+   12. **CLIENT_DISCONNECT**     – either side ends the session.
 
 =============================================================================
-6.  Map Format and Reassembly
+7.  Map Format and Reassembly
 
    MJP does not prescribe a single map encoding for **ChunkData**.  Two
    commonly implemented schemes are:
@@ -286,7 +340,7 @@ Broadcasts authoritative positions, scores, life states, and collected bonuses (
    the in‑memory level.
 
 =============================================================================
-7.  Security Considerations
+8.  Security Considerations
 
    * **Authoritative Server** – all collision detection, scoring, and
      death logic occur on the server.  Suspicious inputs (e.g., extreme
@@ -295,17 +349,19 @@ Broadcasts authoritative positions, scores, life states, and collected bonuses (
      before processing a packet.
    * **Timeouts** – inactivity timers and rate limiting protect against
      stale or malicious clients.
+   * **Acknowledgments** – the CLIENT_ACK system provides verification that
+     game state updates are received by clients, preventing state desync.
    * **Transport Security** – MJP may be encapsulated in TLS to mitigate
      sniffing or tampering, though this is outside the present scope.
 
 =============================================================================
-8.  Conclusion
+9.  Conclusion
 
    The Jetpack Protocol combines a minimal fixed header, well‑defined
-   packet types, and optional extensions to deliver a clear, efficient,
-   and extensible foundation for two‑player Jetpack gameplay.  Adherence
-   to this RFC enables cross‑team interoperability and facilitates
-   future evolution.
+   packet types, explicit acknowledgment mechanisms, and optional extensions 
+   to deliver a clear, efficient, reliable, and extensible foundation for 
+   two‑player Jetpack gameplay. Adherence to this RFC enables cross‑team 
+   interoperability and facilitates future evolution.
 
 =============================================================================
 Acknowledgements

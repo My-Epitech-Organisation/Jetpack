@@ -27,7 +27,8 @@ enum PacketType : uint8_t {
   GAME_STATE = 0x06,        // Server -> Client: Game state update
   GAME_END = 0x07,          // Server -> Client: Game over
   CLIENT_DISCONNECT = 0x08, // Both ways: Graceful disconnect
-  DEBUG_INFO = 0x09         // Both ways: Debug text messages
+  DEBUG_INFO = 0x09,        // Both ways: Debug text messages
+  CLIENT_ACK = 0x0A         // Client -> Server: Packet acknowledgment
 };
 
 // Game end reason codes
