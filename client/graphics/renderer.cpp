@@ -102,10 +102,10 @@ void Renderer::renderMap(sf::RenderWindow *window) {
   // Check for collected coins by any player
   for (const auto &player : players) {
     if (player.collectedCoin) {
-      // Convert world coordinates to tile coordinates
-      uint16_t tileX = player.posX / TILE_SIZE;
-      uint16_t tileY =
-          static_cast<uint16_t>((player.posY / 1000.0f) * mapHeight);
+      // Convert normalized server coordinates to map tile coordinates
+      sf::Vector2f displayPos = convertServerToDisplayCoords(player.posX, player.posY);
+      uint16_t tileX = static_cast<uint16_t>(displayPos.x / TILE_SIZE);
+      uint16_t tileY = static_cast<uint16_t>(displayPos.y / TILE_SIZE);
       collectedCoinPositions.push_back({tileX, tileY});
     }
   }
@@ -163,11 +163,6 @@ void Renderer::renderPlayers(sf::RenderWindow *window) {
   auto players = gameState_->getPlayerStates();
   uint8_t currentPlayerId = gameState_->getAssignedId();
 
-  // Get map dimensions to calculate Y position ratio
-  std::pair<uint16_t, uint16_t> mapDimensions = gameState_->getMapDimensions();
-  uint16_t mapHeight = mapDimensions.second;
-  float mapTotalHeight = mapHeight * TILE_SIZE; // Total map height in pixels
-
   for (const auto &player : players) {
     // Skip rendering dead players
     if (!player.alive)
@@ -179,22 +174,19 @@ void Renderer::renderPlayers(sf::RenderWindow *window) {
 
     playerShape_.setFillColor(playerColor);
 
-    // Adjust player position for display
-    float displayX = player.posX;
-
-    // Convert Y position from ratio (0-1000) to actual pixel position
-    float displayY = (player.posY / 1000.0f) * mapTotalHeight;
-
-    playerShape_.setPosition(displayX, displayY);
+    // Convert server coordinates to display coordinates
+    sf::Vector2f displayPos = convertServerToDisplayCoords(player.posX, player.posY);
+    
+    playerShape_.setPosition(displayPos.x, displayPos.y);
     window->draw(playerShape_);
 
-    // Render player score (also fixed at same position)
+    // Render player score
     sf::Text scoreText;
     scoreText.setFont(*font_);
     scoreText.setString(std::to_string(player.score));
     scoreText.setCharacterSize(12);
     scoreText.setFillColor(sf::Color::White);
-    scoreText.setPosition(displayX - 5, displayY - 25);
+    scoreText.setPosition(displayPos.x - 5, displayPos.y - 25);
     window->draw(scoreText);
   }
 }
@@ -318,25 +310,56 @@ void Renderer::handleResize(sf::RenderWindow *window, unsigned int width,
 void Renderer::updateCamera() {
   // Find the local player
   auto players = gameState_->getPlayerStates();
+  std::pair<uint16_t, uint16_t> mapDimensions = gameState_->getMapDimensions();
+  uint16_t mapWidth = mapDimensions.first;
+  
+  // Calculate the total width of the map in pixels
+  float mapTotalWidth = mapWidth * TILE_SIZE;
 
   for (const auto &player : players) {
     if (player.id == gameState_->getAssignedId() && player.alive) {
-
-      // If player is beyond the fixed position, calculate camera offset
-      if (player.posX > FIXED_PLAYER_X) {
-        cameraOffsetX_ = player.posX - FIXED_PLAYER_X;
-
-        // Update the game view center (X based on offset, Y based on ratio)
-        gameView_.setCenter(virtualWidth_ / 2.0f + cameraOffsetX_,
-                            virtualHeight_ / 2.0f);
+      // Convert server coordinates to display coordinates
+      sf::Vector2f displayPos = convertServerToDisplayCoords(player.posX, player.posY);
+      
+      // If player is beyond the fixed position on screen, calculate camera offset
+      if (displayPos.x > FIXED_PLAYER_X) {
+        cameraOffsetX_ = displayPos.x - FIXED_PLAYER_X;
+        
+        // Make sure we don't scroll too far at the end of the map
+        float maxScrollX = mapTotalWidth - virtualWidth_;
+        if (cameraOffsetX_ > maxScrollX) {
+          cameraOffsetX_ = maxScrollX;
+        }
+        
+        // Update the game view center
+        gameView_.setCenter(virtualWidth_ / 2.0f + cameraOffsetX_, virtualHeight_ / 2.0f);
       } else {
-        // Player is still in entry phase, reset camera
+        // Player is still at the beginning of the map, reset camera
         cameraOffsetX_ = 0.0f;
         gameView_.setCenter(virtualWidth_ / 2.0f, virtualHeight_ / 2.0f);
       }
       break;
     }
   }
+}
+
+sf::Vector2f Renderer::convertServerToDisplayCoords(uint16_t serverX, uint16_t serverY) {
+  // Get map dimensions to calculate position ratios
+  std::pair<uint16_t, uint16_t> mapDimensions = gameState_->getMapDimensions();
+  uint16_t mapWidth = mapDimensions.first;
+  uint16_t mapHeight = mapDimensions.second;
+  
+  // Calculate the total width of the map in pixels
+  float mapTotalWidth = mapWidth * TILE_SIZE;
+  float mapTotalHeight = mapHeight * TILE_SIZE;
+  
+  // Convert server X (0-1000 range) to actual display X based on map width
+  float displayX = (serverX / 1000.0f) * mapTotalWidth;
+  
+  // Convert server Y (0-1000 range) to actual display Y based on map height
+  float displayY = (serverY / 1000.0f) * mapTotalHeight;
+  
+  return sf::Vector2f(displayX, displayY);
 }
 
 } // namespace graphics
