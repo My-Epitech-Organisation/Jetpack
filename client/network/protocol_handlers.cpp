@@ -119,8 +119,8 @@ void ProtocolHandlers::handleGameState(const std::vector<uint8_t> &payload) {
 
   gameState_->setCurrentTick(tick);
 
-  // Each player data is 8 bytes (ID, X, Y, Score, Alive)
-  const size_t PLAYER_DATA_SIZE = 8;
+  // Each player data is 9 bytes (ID, X, Y, Score, Alive, CollectedCoin)
+  const size_t PLAYER_DATA_SIZE = 9;
   if (payload.size() < 5 + (numPlayers * PLAYER_DATA_SIZE)) {
     debugPrint("GAME_STATE: Not enough data for " + std::to_string(numPlayers) +
                " players (need " +
@@ -141,6 +141,7 @@ void ProtocolHandlers::handleGameState(const std::vector<uint8_t> &payload) {
     state.posY = (payload[offset + 3] << 8) | payload[offset + 4];
     state.score = (payload[offset + 5] << 8) | payload[offset + 6];
     state.alive = payload[offset + 7];
+    state.collectedCoin = payload[offset + 8];
 
     playerStates.push_back(state);
 
@@ -148,7 +149,8 @@ void ProtocolHandlers::handleGameState(const std::vector<uint8_t> &payload) {
                    std::to_string(state.posX) + "," +
                    std::to_string(state.posY) +
                    "), Score=" + std::to_string(state.score) +
-                   ", Alive=" + std::to_string(state.alive));
+                   ", Alive=" + std::to_string(state.alive) +
+                   ", CollectedCoin=" + std::to_string(state.collectedCoin));
   }
 
   gameState_->setPlayerStates(playerStates);

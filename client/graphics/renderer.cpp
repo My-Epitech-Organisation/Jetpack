@@ -93,6 +93,23 @@ void Renderer::renderMap(sf::RenderWindow *window) {
   if (mapData.empty())
     return;
 
+  // Get player states to check for coin collection
+  auto players = gameState_->getPlayerStates();
+
+  // Track positions where coins were collected
+  std::vector<std::pair<uint16_t, uint16_t>> collectedCoinPositions;
+
+  // Check for collected coins by any player
+  for (const auto &player : players) {
+    if (player.collectedCoin) {
+      // Convert world coordinates to tile coordinates
+      uint16_t tileX = player.posX / TILE_SIZE;
+      uint16_t tileY =
+          static_cast<uint16_t>((player.posY / 1000.0f) * mapHeight);
+      collectedCoinPositions.push_back({tileX, tileY});
+    }
+  }
+
   for (uint16_t y = 0; y < mapHeight; ++y) {
     for (uint16_t x = 0; x < mapWidth; ++x) {
       size_t index = y * mapWidth + x;
@@ -108,6 +125,22 @@ void Renderer::renderMap(sf::RenderWindow *window) {
         break;
       }
       case protocol::COIN: {
+        // Check if this coin was collected by any player
+        bool coinCollected = false;
+        for (const auto &pos : collectedCoinPositions) {
+          if (pos.first == x && pos.second == y) {
+            coinCollected = true;
+            break;
+          }
+        }
+
+        // Change color if coin was collected
+        if (coinCollected) {
+          coinShape_.setFillColor(sf::Color(150, 150, 150)); // Gray color
+        } else {
+          coinShape_.setFillColor(sf::Color::Yellow); // Default yellow
+        }
+
         coinShape_.setPosition(x * TILE_SIZE + TILE_SIZE / 2,
                                y * TILE_SIZE + TILE_SIZE / 2);
         window->draw(coinShape_);
@@ -230,7 +263,7 @@ void Renderer::renderDebugInfo(sf::RenderWindow *window, const sf::Font &font) {
     ss << "  ID " << static_cast<int>(player.id) << " (" << player.posX << ","
        << player.posY << ") "
        << "Score: " << player.score << (player.alive ? "" : " [DEAD]")
-       << std::endl;
+       << (player.collectedCoin ? " [COIN]" : "") << std::endl;
   }
 
   debugText.setString(ss.str());
