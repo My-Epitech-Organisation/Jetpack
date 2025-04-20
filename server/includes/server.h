@@ -35,6 +35,12 @@
     #define CLIENT_DISCONNECT 0x08
     #define DEBUG_INFO 0x09
 
+typedef struct coin_s {
+    size_t row;
+    size_t col;
+    bool *is_collected;
+} coin_t;
+
 typedef struct client_s {
     int fd;
     struct sockaddr_in addr;
@@ -72,6 +78,8 @@ typedef struct server_s {
     int client_count;
     bool debug_mode;
     uint32_t tick;
+    coin_t *coins;
+    size_t coin_count;
 } server_t;
 
 // Error handling functions
@@ -135,11 +143,14 @@ void print_debug_all(server_t *server, char *context, char *payload,
 
 // In game functions
 void check_jetpack(client_t *client, server_t *server);
-void check_limits(client_t *client);
+bool check_limits(client_t *client);
 void check_entities_collisions(client_t *client, server_t *server);
-bool check_alive_begin(server_t *server, int *alive_count,
+bool initialize_alive_tracking(server_t *server, int *alive_count,
     uint8_t *alive_player_id);
-void check_alive_end(client_t *client, int *alive_count,
-    uint8_t *alive_player_id, int i);
+void process_client_state(client_t *client, server_t *server,
+    uint8_t alive_player_id);
+bool is_in_bounds(server_t *server, size_t row, size_t col);
+void handle_coin(client_t *client, server_t *server, size_t row, size_t col);
+void handle_electic(client_t *client);
 
 #endif /* !SERVER_H_ */
