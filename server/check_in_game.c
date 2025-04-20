@@ -79,7 +79,7 @@ void process_client_state(client_t *client, server_t *server,
 void check_jetpack(client_t *client, server_t *server)
 {
     if (client->jetpack) {
-        client->y = client->y < 40 ? 0 :
+        client->y = client->y < client->y - (5 * 100 / server->map_rows) ? 0 :
         client->y - (5 * 100 / server->map_rows);
     } else
         client->y += (3 * 100 / server->map_rows);

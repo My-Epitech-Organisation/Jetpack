@@ -30,7 +30,6 @@ void print_debug_info_connection(server_t *server, char *context)
     strftime(time_buf, sizeof(time_buf), "%H:%M:%S", tm_info);
     printf("[%s][%s] Connecting on the port %i \n",
         time_buf, context, server->port);
-    fflush(stdout);
 }
 
 void print_debug_info_package_received(server_t *server, char *context,
@@ -45,7 +44,6 @@ void print_debug_info_package_received(server_t *server, char *context,
     type = get_type_string_prev(server->message_type);
     printf("[%s][%s] Received packet: type=0x%02X (%s), length=%u bytes\n",
         time_buf, context, server->message_type, type, payload_length);
-    fflush(stdout);
 }
 
 void print_debug_info_package_sent(server_t *server,
