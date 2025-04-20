@@ -69,7 +69,6 @@ void InputHandler::handleKeyPress(sf::Keyboard::Key key, bool isPressed) {
     break;
 
   case sf::Keyboard::Escape:
-    // Escape is handled by window closing in processEvent
     break;
 
   default:

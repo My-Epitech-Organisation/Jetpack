@@ -26,7 +26,6 @@ std::atomic<bool> g_window_closed(false);
 std::atomic<bool> g_countdown_ended(false);
 
 void signal_handler(int signal) {
-  // Properly shut down the application when receiving termination signals
   jetpack::debug::print("Main",
                         "Received signal " + std::to_string(signal) +
                             ", shutting down...",
@@ -57,7 +56,6 @@ void print_usage(const char *program_name) {
 }
 
 void handle_window_closed() {
-  // Callback triggered when window is closed to initiate shutdown
   jetpack::debug::print("Main",
                         "Window closed callback triggered, initiating shutdown",
                         g_debug_mode);
@@ -65,7 +63,6 @@ void handle_window_closed() {
 }
 
 void handle_countdown_end() {
-  // Callback triggered when the end game countdown finishes
   jetpack::debug::print("Main",
                         "Game end countdown finished, sending "
                         "CLIENT_DISCONNECT and initiating shutdown",
@@ -86,7 +83,6 @@ int main(int argc, char *argv[]) {
   int port = 0;
   bool debug_mode = false;
 
-  // Parse command line arguments
   for (int i = 1; i < argc; i++) {
     std::string arg = argv[i];
 
@@ -153,8 +149,7 @@ int main(int argc, char *argv[]) {
     g_graphics = graphics.get();
 
     graphics->setOnWindowClosedCallback(handle_window_closed);
-    graphics->setOnCountdownEndCallback(
-        handle_countdown_end);
+    graphics->setOnCountdownEndCallback(handle_countdown_end);
 
     // Connect to the server
     jetpack::debug::print("Main",

@@ -57,7 +57,7 @@ struct PlayerState {
   uint16_t posY;
   uint16_t score;
   uint8_t alive;
-  uint8_t collectedCoin; // 1 = coin collected this tick, 0 = no
+  uint8_t collectedCoin;
 };
 
 // Map element types

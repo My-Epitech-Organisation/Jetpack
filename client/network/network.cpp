@@ -129,7 +129,7 @@ void Network::run() {
     debug::logToFile("Network", "Network thread started", debugMode_);
 
     while (running_) {
-      int pollResult = poll(&pfd_, 1, 50); // Timeout de 50ms
+      int pollResult = poll(&pfd_, 1, 50);
 
       if (pollResult < 0) {
         debug::logToFile("Network",
@@ -323,8 +323,7 @@ void Network::sendPlayerInput() {
   sendPacket(protocol::CLIENT_INPUT, payload);
 
   // Log when jetpack state changes
-  static uint8_t lastJetpackState =
-      0xFF; // Initialize to invalid value to ensure first log
+  static uint8_t lastJetpackState = 0xFF;
   if (jetpackState != lastJetpackState) {
     std::stringstream ss;
     ss << "Input changed: Jetpack="

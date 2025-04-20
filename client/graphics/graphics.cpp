@@ -19,11 +19,9 @@ Graphics::Graphics(GameState *gameState, bool debugMode)
     : window_(nullptr), debugMode_(debugMode), running_(false),
       graphicsInitialized_(false) {
 
-  // Create component classes
   renderer_ = std::make_unique<Renderer>(gameState, debugMode);
   inputHandler_ = std::make_unique<InputHandler>(gameState, debugMode);
 
-  // Set up the resize callback
   inputHandler_->setOnWindowResizeCallback(
       [this](unsigned int width, unsigned int height) {
         this->handleWindowResize(width, height);
@@ -45,7 +43,6 @@ bool Graphics::initializeWindow() {
 }
 
 bool Graphics::initializeResources() {
-  // Load font
   if (!font_.loadFromFile("assets/jetpack_font.ttf")) {
     try {
       if (!font_.loadFromFile("/usr/share/fonts/truetype/liberation/"
@@ -59,7 +56,6 @@ bool Graphics::initializeResources() {
     }
   }
 
-  // Initialize the renderer with the window and font
   if (!renderer_->initialize(font_)) {
     std::cerr << "Failed to initialize renderer" << std::endl;
     return false;
