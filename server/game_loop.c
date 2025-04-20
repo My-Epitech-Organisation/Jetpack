@@ -48,10 +48,10 @@ void update_game_state(server_t *server)
         if (client->jetpack) {
             printf("Client %d is using jetpack!\n", client->fd);
             client->y = client->y < 40 ? 0 :
-            client->y - 40 * server->map_rows / 1000;
+            client->y - (40 * server->map_rows / 1000);
         } else
-            client->y += 50 * server->map_rows / 1000;
-        client->x += 50 * server->map_cols / 1000;
+            client->y += (50 * server->map_rows / 1000);
+        client->x += (50 * server->map_cols / 1000);
         check_limits(client);
         check_coins(client, server);
     }
