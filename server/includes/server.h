@@ -82,7 +82,7 @@ bool check_port(char *port);
 bool check_path_map(char *path);
 bool check_header(unsigned char header[4], int i, server_t *server);
 int check_payload_length(uint16_t payload_length, server_t *server, int i);
-int check_read(int read_ret, uint16_t payload_length, char *payload);
+int check_read(int read_ret, char *payload);
 
 // Sending messages to clients
 void send_welcome(server_t *server, int client_fd, uint8_t assigned_id);

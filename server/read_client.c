@@ -26,6 +26,20 @@ void handle_message(server_t *server, int client_id, char *payload)
     }
 }
 
+ssize_t read_all(int fd, char *buffer, size_t size)
+{
+    size_t total_read = 0;
+    ssize_t bytes_read;
+
+    while (total_read < size) {
+        bytes_read = read(fd, buffer + total_read, size - total_read);
+        if (bytes_read <= 0)
+            return bytes_read;
+        total_read += bytes_read;
+    }
+    return total_read;
+}
+
 void read_client(server_t *server, int i)
 {
     unsigned char header[4];
@@ -33,7 +47,7 @@ void read_client(server_t *server, int i)
     uint16_t payload_length;
     char *payload;
 
-    read_ret = read(server->client[i]->fd, header, 4);
+    read_ret = read_all(server->client[i]->fd, (char *)header, 4);
     if (read_ret <= 0 || !check_header((unsigned char *)header, i, server))
         return;
     payload_length = ntohs(*(uint16_t *)(header + 2));
@@ -42,8 +56,8 @@ void read_client(server_t *server, int i)
     payload = malloc((payload_length - 4) * sizeof(char));
     if (!payload)
         handle_error("malloc", server);
-    read_ret = read(server->client[i]->fd, payload, payload_length - 4);
-    if (check_read(read_ret, payload_length, payload) == 84)
+    read_ret = read_all(server->client[i]->fd, payload, payload_length - 4);
+    if (check_read(read_ret, payload) == 84)
         return;
     print_debug_all(server, "Server", payload, header);
     handle_message(server, i, payload);
