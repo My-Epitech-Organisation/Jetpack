@@ -14,6 +14,8 @@ void display_help(void)
 
 int main(int argc, char **argv)
 {
+    setbuf(stdout, NULL);
+    setbuf(stderr, NULL);
     if (argc == 1) {
         display_help();
         return 84;

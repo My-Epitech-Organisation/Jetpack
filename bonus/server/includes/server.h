@@ -144,12 +144,11 @@ void print_debug_all(server_t *server, char *context, char *payload,
 
 // In game functions
 void check_jetpack(client_t *client, server_t *server);
-bool check_limits(client_t *client);
+void check_limits(client_t *client);
 void check_entities_collisions(client_t *client, server_t *server);
 bool initialize_alive_tracking(server_t *server, int *alive_count,
     uint8_t *alive_player_id);
-void process_client_state(client_t *client, server_t *server,
-    uint8_t alive_player_id);
+void process_client_state(client_t *client, server_t *server);
 bool is_in_bounds(server_t *server, size_t row, size_t col);
 void handle_coin(client_t *client, server_t *server, size_t row, size_t col);
 void handle_electic(client_t *client);

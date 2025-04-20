@@ -15,7 +15,6 @@ void close_everything(server_t *server)
     for (int i = 0; i < server->client_count; i++) {
         close(server->client[i]->fd);
         free(server->client[i]);
-        server->client_count--;
     }
     free(server);
 }

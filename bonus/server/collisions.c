@@ -16,7 +16,6 @@ void handle_coin(client_t *client, server_t *server, size_t row, size_t col)
 {
     coin_t *coin;
 
-    client->score++;
     server->map[row][col] = 'd';
     client->collected_coin = true;
     for (size_t i = 0; i < server->coin_count; i++) {
