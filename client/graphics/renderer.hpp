@@ -11,6 +11,8 @@
 
 #include "../gamestate.hpp"
 #include <SFML/Graphics.hpp>
+#include <chrono>
+#include <functional>
 
 namespace jetpack {
 namespace graphics {
@@ -24,12 +26,23 @@ public:
   void render(sf::RenderWindow *window);
   void handleResize(sf::RenderWindow *window, unsigned int width,
                     unsigned int height);
+  
+  // Callback for when the countdown ends
+  void setOnCountdownEndCallback(std::function<void()> callback);
 
 private:
   // Core data
   GameState *gameState_;
   bool debugMode_;
   sf::Font *font_; // Pointer to the font used for rendering text
+
+  // Game end screen properties
+  bool gameEndOverlayActive_ = false;
+  std::chrono::time_point<std::chrono::steady_clock> gameEndTime_;
+  const int shutdownCountdownSeconds_ = 5;
+
+  // Callback function
+  std::function<void()> onCountdownEndCallback_;
 
   // View management
   sf::View gameView_; // View for the game world
@@ -57,6 +70,7 @@ private:
   void renderUI(sf::RenderWindow *window, const sf::Font &font);
   void renderDebugInfo(sf::RenderWindow *window, const sf::Font &font);
   void renderConnectingMessage(sf::RenderWindow *window, const sf::Font &font);
+  void renderGameEndScreen(sf::RenderWindow *window, const sf::Font &font);
 
   // Helper method to update camera position based on player position
   void updateCamera();

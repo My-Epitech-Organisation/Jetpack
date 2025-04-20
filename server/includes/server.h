@@ -90,8 +90,7 @@ void send_game_start(server_t *server, int client_fd);
 void send_map(server_t *server, int client_fd);
 void send_game_state(server_t *server, int client_fd);
 void send_game_state_to_all_clients(server_t *server);
-void send_game_start(server_t *server, int client_fd);
-void send_game_state_to_all_clients(server_t *server);
+void send_game_end(server_t *server, uint8_t reason, uint8_t winner_id);
 void send_disconnect(server_t *server);
 
 // Writing messages to clients

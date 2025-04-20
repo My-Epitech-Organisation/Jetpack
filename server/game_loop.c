@@ -53,13 +53,38 @@ void check_laser(client_t *client, server_t *server)
 void update_game_state(server_t *server)
 {
     client_t *client;
+    bool player_died = false;
+    uint8_t alive_player_id = 0xFF; // No winner by default
+    int alive_count = 0;
+
+    // Comptage initial des joueurs en vie
+    for (int i = 0; i < server->client_count; i++) {
+        if (server->client[i]->is_alive) {
+            alive_count++;
+            alive_player_id = i; // Mémoriser le dernier joueur en vie trouvé
+        }
+    }
+
+    // Si un seul joueur est en vie au début de la mise à jour, la partie est déjà terminée
+    if (alive_count <= 1 && server->client_count > 1) {
+        printf("Only one player left alive! Game over. Winner: Player %d\n", alive_player_id);
+        send_game_end(server, 2, alive_player_id); // 2 = PLAYER_DIED
+        return;
+    }
+
+    // Réinitialiser le compteur pour la mise à jour
+    alive_count = 0;
 
     for (int i = 0; i < server->client_count; i++) {
         read_client(server, i);
         client = server->client[i];
         client->collected_coin = false;
+        
+        // Si un joueur était déjà mort avant cette mise à jour
         if (!client->is_alive)
             continue;
+            
+        // Mise à jour de la position du joueur
         if (client->jetpack) {
             client->y = client->y < 40 ? 0 :
             client->y - (5 * 100 / server->map_rows);
@@ -67,9 +92,27 @@ void update_game_state(server_t *server)
         } else
             client->y += (3 * 100 / server->map_rows);
         client->x += (5 * 100 / server->map_cols);
+        
+        // Vérification des collisions
         check_limits(client);
         check_coins(client, server);
         check_laser(client, server);
+        
+        // Vérifier si le joueur vient de mourir
+        if (!client->is_alive) {
+            player_died = true;
+        } else {
+            alive_count++;
+            alive_player_id = i;
+        }
+    }
+    
+    // Si un joueur est mort OU s'il ne reste qu'un seul joueur en vie après les mises à jour
+    if (player_died || (alive_count == 1 && server->client_count > 1)) {
+        // Envoyer un message GAME_END à tous les clients
+        printf("Game over! Player %d is the last one standing. Winner: Player %d\n", 
+               alive_player_id, alive_player_id);
+        send_game_end(server, 2, alive_player_id); // 2 = PLAYER_DIED
     }
 }
 
