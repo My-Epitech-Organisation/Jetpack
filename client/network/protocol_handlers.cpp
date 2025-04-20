@@ -60,7 +60,6 @@ void ProtocolHandlers::handleMapChunk(const std::vector<uint8_t> &payload) {
                  ", Count=" + std::to_string(chunkCount) +
                  ", Size=" + std::to_string(payload.size() - 4) + " bytes");
 
-  // On first chunk, initialize our storage
   if (chunkIndex == 0) {
     mapChunks.clear();
     mapChunks.resize(chunkCount);
@@ -214,34 +213,25 @@ void ProtocolHandlers::handleDebugInfo(const std::vector<uint8_t> &payload) {
 }
 
 void ProtocolHandlers::processCompleteMap() {
-  // The server sends the map column by column
-  // Each column is a separate chunk
-
   uint16_t numColumns = static_cast<uint16_t>(mapChunks.size());
 
-  // Check if we have valid chunks
   if (numColumns == 0) {
     debugPrint("processCompleteMap: No map chunks received");
     return;
   }
 
-  // The height of the map is determined by the size of each chunk
   uint16_t mapHeight = static_cast<uint16_t>(mapChunks[0].size());
 
   debugLogToFile("Processing map with dimensions: " +
                  std::to_string(numColumns) + "x" + std::to_string(mapHeight));
 
-  // First, set the map dimensions
   gameState_->setMapDimensions(numColumns, mapHeight);
 
-  // Create a vector for the final map in row-major format
   std::vector<uint8_t> finalMap(numColumns * mapHeight, protocol::EMPTY);
 
-  // Process column by column (as received from server)
   for (uint16_t col = 0; col < numColumns; col++) {
     const auto &columnData = mapChunks[col];
 
-    // Check if this column has the expected height
     if (columnData.size() != mapHeight) {
       debugPrint("WARNING: Column " + std::to_string(col) +
                  " has unexpected size: " + std::to_string(columnData.size()) +
@@ -249,12 +239,10 @@ void ProtocolHandlers::processCompleteMap() {
       continue;
     }
 
-    // Process each character in the column
     for (uint16_t row = 0; row < mapHeight; row++) {
-      uint8_t tileValue = protocol::EMPTY; // Default to empty
+      uint8_t tileValue = protocol::EMPTY;
       char mapChar = static_cast<char>(columnData[row]);
 
-      // Convert characters to tile types according to map format
       switch (mapChar) {
       case '#': // Wall
         tileValue = protocol::WALL;
@@ -273,12 +261,10 @@ void ProtocolHandlers::processCompleteMap() {
         break;
       }
 
-      // Store in row-major order
       finalMap[row * numColumns + col] = tileValue;
     }
   }
 
-  // Store the final map in the game state
   gameState_->setMapData(finalMap);
 
   mapComplete = true;

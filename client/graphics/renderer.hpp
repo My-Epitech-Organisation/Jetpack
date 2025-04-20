@@ -34,7 +34,7 @@ private:
   // Core data
   GameState *gameState_;
   bool debugMode_;
-  sf::Font *font_; // Pointer to the font used for rendering text
+  sf::Font *font_;
 
   // Game end screen properties
   bool gameEndOverlayActive_ = false;
