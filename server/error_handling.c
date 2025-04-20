@@ -43,9 +43,9 @@ int check_payload_length(uint16_t payload_length, server_t *server, int i)
     return 0;
 }
 
-int check_read(int read_ret, uint16_t payload_length, char *payload)
+int check_read(int read_ret, char *payload)
 {
-    if (read_ret < payload_length - 4) {
+    if (read_ret <= 0) {
         free(payload);
         return 84;
     }

@@ -34,6 +34,6 @@ void set_bind(server_t *server)
 
 void set_listen(server_t *server)
 {
-    if (listen(server->fd, 50) == -1)
+    if (listen(server->fd, MAX_CLIENTS) == -1)
         handle_error("listen", server);
 }
